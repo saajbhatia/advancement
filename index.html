@@ -1,489 +1,613 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Calculate your FTC advancement probability and odds based on historical data. See your chances of advancing at FIRST Tech Challenge events." />
-  <title>Advancement odds for FTC</title>
-  <style>
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      padding: 24px;
-      max-width: 1200px;
-      margin: 0 auto;
-      box-sizing: border-box;
-      background: #f5f5f5;
-    }
-
-    h1 {
-      margin-top: 0;
-      font-size: 1.5rem;
-    }
-
-    h2 {
-      margin: 0 0 8px 0;
-      font-size: 1.1rem;
-    }
-
-    h3 {
-      margin: 0 0 8px 0;
-      font-size: 1rem;
-    }
-
-    form {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .control-row {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .control-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      color: #444;
-    }
-
-    .control-group span {
-      font-weight: 500;
-    }
-
-    select,
-    input[type=number] {
-      padding: 8px 12px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: #fff;
-    }
-
-    select {
-      min-width: 100px;
-    }
-
-    input[type=number] {
-      width: 70px;
-    }
-
-    button {
-      padding: 8px 16px;
-      font-size: 14px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-weight: 500;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
-    .nav-bar {
-      margin-bottom: 12px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .nav-link {
-      text-decoration: none;
-    }
-
-    .nav-btn {
-      min-width: 220px;
-    }
-
-    .accent-btn {
-      background: #059669;
-    }
-
-    .accent-btn:hover {
-      background: #047857;
-    }
-
-    .separator {
-      width: 1px;
-      height: 24px;
-      background: #ddd;
-    }
-
-    .toggle-group {
-      display: flex;
-      gap: 2px;
-      background: #e5e7eb;
-      padding: 3px;
-      border-radius: 8px;
-    }
-
-    .toggle-group label {
-      padding: 6px 12px;
-      font-size: 13px;
-      cursor: pointer;
-      border-radius: 6px;
-      transition: background 0.15s, color 0.15s;
-      color: #555;
-      user-select: none;
-    }
-
-    .toggle-group label:has(input:checked) {
-      background: #fff;
-      color: #111;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
-
-    .toggle-group input {
-      display: none;
-    }
-
-    #factor-tables {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-top: 16px;
-      align-items: start;
-    }
-
-    #table-container {
-      position: relative;
-      overflow: visible;
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid #ddd;
-    }
-
-    table {
-      border-collapse: collapse;
-      margin: 0;
-      width: 100%;
-      table-layout: fixed;
-    }
-
-    #factor-tables .factor-card {
-      background: #fff;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-
-    #factor-tables table {
-      width: 100%;
-    }
-
-    .grid-table {
-      width: max-content;
-      white-space: nowrap;
-    }
-
-    th,
-    td {
-      border: 1px solid #ddd;
-      padding: 4px 8px;
-      text-align: center;
-      font-size: 13px;
-    }
-
-    th {
-      background: #f4f4f4;
-    }
-
-    caption {
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    .grid-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .grid-caption {
-      font-weight: 600;
-      margin-bottom: 6px;
-      text-align: center;
-    }
-
-    .grid-scroll {
-      max-width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .missing {
-      background: #f9f9f9;
-      color: #888;
-    }
-
-    #status {
-      margin: 8px 0 0 0;
-      color: #555;
-      font-size: 14px;
-    }
-
-    @media (max-width: 890px) {
-      #factor-tables {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    @media (max-width: 600px) {
-      body {
-        padding: 16px;
-      }
-
-      h1 {
-        font-size: 1.25rem;
-      }
-
-      .nav-link {
-        width: 100%;
-      }
-
-      .nav-btn {
-        width: 100%;
-      }
-
-      form {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .control-row {
-        width: 100%;
-      }
-
-      #teams-row,
-      #custom-range-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-
-      #teams-row .control-group,
-      #custom-range-row .control-group {
-        display: grid;
-        grid-template-columns: 65px 1fr;
-        gap: 8px;
-      }
-
-      #teams-row select,
-      #teams-row input[type="number"],
-      #custom-range-row select,
-      #custom-range-row input[type="number"] {
-        width: 100%;
-        box-sizing: border-box;
-        min-height: 38px;
-      }
-
-      #toggle-row {
-        font-size: 14px;
-        color: #444;
-        gap: 8px;
-      }
-
-      #toggle-row > span {
-        font-weight: 500;
-        white-space: nowrap;
-      }
-
-      .toggle-group {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .toggle-group label {
-        flex: 1;
-        text-align: center;
-        min-width: 0;
-        padding: 6px 8px;
-      }
-
-      button[type="submit"] {
-        width: 100%;
-      }
-
-      .separator {
-        display: none;
-      }
-
-      #factor-tables {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 360px) {
-      .toggle-group {
-        gap: 1px;
-      }
-
-      .toggle-group label {
-        padding: 6px 8px;
-        font-size: 12px;
-      }
-    }
-
-    .low-data-cell {
-      background-image: repeating-linear-gradient(45deg,
-          transparent,
-          transparent 5px,
-          rgba(0, 0, 0, 0.08) 5px,
-          rgba(0, 0, 0, 0.08) 10px);
-    }
-
-    #learn-more-link {
-      color: #2563eb;
-      text-decoration: underline;
-    }
-
-    #learn-more-link:hover {
-      opacity: 0.8;
-    }
-
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal-overlay.active {
-      display: flex;
-    }
-
-    .modal {
-      background: #fff;
-      padding: 24px;
-      border-radius: 12px;
-      max-width: 500px;
-      margin: 16px;
-      position: relative;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-
-    .modal h2 {
-      margin-top: 0;
-      font-size: 1.25rem;
-    }
-
-    .modal h3 {
-      font-size: 1rem;
-      margin-bottom: 8px;
-    }
-
-    .modal p {
-      color: #444;
-      line-height: 1.5;
-    }
-
-    .modal-close {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: #666;
-      padding: 0;
-      line-height: 1;
-    }
-
-    .modal-close:hover {
-      color: #000;
-    }
-  </style>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4T577GC8SB"></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-4T577GC8SB');</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Calculate your FTC advancement probability and odds based on historical data. See your chances of advancing at FIRST Tech Challenge events." />
+<title>Advancement odds for FTC</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4T577GC8SB"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-4T577GC8SB');</script>
+<script src="./support.js"></script>
 </head>
-
 <body>
-  <h1>Advancement odds for FTC</h1>
-  <div class="nav-bar">
-    <a href="compare/" class="nav-link">
-      <button type="button" class="accent-btn nav-btn">Compare with previous season</button>
-    </a>
-  </div>
-  <form id="controls">
-    <div class="control-row" id="teams-row">
-      <div class="control-group">
-        <span>Teams</span>
-        <select id="teamRange">
-          <option value="0-10">0-10</option>
-          <option value="11-20">11-20</option>
-          <option value="21-30" selected>21-30</option>
-          <option value="31-40">31-40</option>
-          <option value="40+">40+</option>
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-      <div class="control-group">
-        <span>Advancing</span>
-        <input type="number" id="threshold" value="6" min="1" />
-      </div>
-    </div>
-    <div class="control-row" id="custom-range-row" style="display:none">
-      <div class="control-group">
-        <span>Min</span>
-        <input type="number" id="minTeams" value="21" min="0" />
-      </div>
-      <div class="control-group">
-        <span>Max</span>
-        <input type="number" id="maxTeams" value="30" min="0" />
-      </div>
-    </div>
-    <button type="submit">Update</button>
-    <div class="separator"></div>
-    <div class="control-row" id="toggle-row">
-      <span>2-way table</span>
-      <div class="toggle-group" id="gridAxisToggles"></div>
-    </div>
-  </form>
-  <div id="status"></div>
-  <div id="warning-container"></div>
-  <div id="factor-tables"></div>
-  <div id="table-container"></div>
+<x-dc>
+<helmet>
+<script src="advData.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #f5f5f5; color: #111; }
+  input.num::-webkit-outer-spin-button, input.num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  table { border-collapse: collapse; width: 100%; }
+  .actionbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .actionbtn { padding: 8px 16px; font-size: 14px; line-height: 1.3; white-space: nowrap; cursor: pointer; border-radius: 6px; font-weight: 500; }
+  @media (max-width: 640px) { .actionbar .actionbtn { flex: 1 1 100%; width: 100%; } }
+  .info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid #bbb; color: #888; font-size: 10px; font-style: italic; font-weight: 700; cursor: help; }
+  .info .infotip { visibility: hidden; opacity: 0; position: absolute; bottom: 145%; left: 50%; transform: translateX(-50%); width: 220px; max-width: 60vw; background: #111827; color: #fff; font-size: 11px; font-style: normal; font-weight: 400; line-height: 1.45; text-align: left; padding: 8px 10px; border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.28); z-index: 20; transition: opacity 0.12s ease; pointer-events: none; }
+  .info .infotip::after { content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #111827; }
+  .info:hover .infotip, .info:focus .infotip { visibility: visible; opacity: 1; }
+</style>
+</helmet>
 
-  <div id="modal-overlay" class="modal-overlay">
-    <div class="modal">
-      <button class="modal-close">&times;</button>
-      <h2>How percentages are calculated</h2>
-      <p>Percentages show the <strong>historical advancement rate</strong> for teams in each category based on this season's events.</p>
-      <p>For example, if "2nd place award" shows "75%" with "15/20", it means 20 teams won a 2nd place award this season (at events matching your selected team size), and 15 of them finished with an advancement rank at or above the "Advancing" cutoff.</p>
-      <h3>2-way table</h3>
-      <p>The 2-way table shows advancement rates for combinations of two factors. For example, if you select "Awards" and "Playoffs", each cell shows the advancement rate for teams with that specific award result AND that specific playoff result.</p>
-      <h3>Data source</h3>
-      <p>Data is aggregated from FTC qualifier and championship events this season. The "Teams" filter lets you focus on events of similar size to yours, and "Advancing" sets the cutoff for how many teams advance.</p>
-      <h3>Why some patterns seem unexpected</h3>
-      <p>You may notice cases where a "worse" result has a higher advancement rate than a "better" one (e.g., a lower qual rank outperforming a higher one). This happens because the data reflects natural variation across different events with different teams. With more events, these small differences would likely even out.</p>
-      <h3>Striped cells</h3>
-      <p>Cells with diagonal stripes indicate low sample size (4 or fewer teams). These percentages may be less reliable.</p>
-    </div>
+<div style="max-width:1200px;margin:0 auto;padding:24px;">
+  <h1 style="margin:0 0 12px;font-size:1.5rem;">Advancement odds for FTC</h1>
+
+  <!-- nav / actions -->
+  <div class="actionbar">
+    <button onClick="{{ onCompare }}" class="actionbtn" style="background:#059669;color:#fff;border:none;">Compare with previous season</button>
+    <button onClick="{{ onAdjust }}" class="actionbtn" style="background:{{ adjustBg }};color:{{ adjustColor }};border:1px solid {{ adjustBorder }};">Adjust advancement system</button>
   </div>
 
-  <script type="module" src="js/main/app.js"></script>
+  <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:50px;text-align:center;color:#777;">Loading event data…</div>
+  </sc-if>
+
+  <!-- shared controls -->
+  <sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-bottom:8px;">
+    <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:#444;">
+      <span style="font-weight:500;">Teams</span>
+      <select value="{{ range }}" onChange="{{ onRange }}" style="padding:8px 12px;font-size:14px;border:1px solid #ccc;border-radius:6px;background:#fff;min-width:100px;">
+        <option value="0-10">0-10</option>
+        <option value="11-20">11-20</option>
+        <option value="21-30">21-30</option>
+        <option value="31-40">31-40</option>
+        <option value="40+">40+</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:#444;">
+      <span style="font-weight:500;">Advancing</span>
+      <input class="num" type="number" value="{{ thresholdH.value }}" min="1" onChange="{{ thresholdH.onChange }}" onBlur="{{ thresholdH.onBlur }}" style="width:70px;padding:8px 12px;font-size:14px;border:1px solid #ccc;border-radius:6px;background:#fff;" />
+    </div>
+    <sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:#444;">
+        <span style="font-weight:500;">Min</span>
+        <input class="num" type="number" value="{{ minH.value }}" min="0" onChange="{{ minH.onChange }}" onBlur="{{ minH.onBlur }}" style="width:70px;padding:8px 12px;font-size:14px;border:1px solid #ccc;border-radius:6px;background:#fff;" />
+        <span style="font-weight:500;">Max</span>
+        <input class="num" type="number" value="{{ maxH.value }}" min="0" onChange="{{ maxH.onChange }}" onBlur="{{ maxH.onBlur }}" style="width:70px;padding:8px 12px;font-size:14px;border:1px solid #ccc;border-radius:6px;background:#fff;" />
+      </div>
+    </sc-if>
+    <sc-if value="{{ isOdds }}" hint-placeholder-val="{{ true }}">
+      <div style="width:1px;height:24px;background:#ddd;"></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:#444;flex-wrap:wrap;">
+        <span style="font-weight:500;white-space:nowrap;">2-way table</span>
+        <div style="display:flex;gap:2px;background:#e5e7eb;padding:3px;border-radius:8px;flex-wrap:wrap;">
+          <sc-for list="{{ gridToggles }}" as="g" hint-placeholder-count="4">
+            <div onClick="{{ g.onClick }}" style="padding:6px 12px;font-size:13px;cursor:pointer;border-radius:6px;user-select:none;color:{{ g.color }};background:{{ g.bg }};box-shadow:{{ g.shadow }};">{{ g.label }}</div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- ===================== ODDS VIEW ===================== -->
+  <sc-if value="{{ isOdds }}" hint-placeholder-val="{{ true }}">
+  <div>
+    <sc-if value="{{ lowData }}" hint-placeholder-val="{{ false }}">
+      <p style="color:#d97706;font-weight:bold;margin:10px 0;">Warning: Low data, percentages could be inaccurate</p>
+    </sc-if>
+    <div style="margin:8px 0 0;color:#555;font-size:14px;">{{ statusPre }} <strong>Percentages are based on historical events.</strong> <span onClick="{{ onLearnMore }}" style="color:#2563eb;text-decoration:underline;cursor:pointer;">ⓘ Learn more</span></div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px;align-items:start;">
+      <sc-for list="{{ factorCards }}" as="card" hint-placeholder-count="4">
+        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <table style="table-layout:fixed;">
+            <caption style="font-weight:600;margin-bottom:6px;">{{ card.title }}</caption>
+            <tbody>
+            <tr>
+              <th style="width:40%;border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;">Value</th>
+              <th style="width:34%;border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;">Advance chance</th>
+              <th style="width:26%;border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;">Teams</th>
+            </tr>
+            <sc-for list="{{ card.rows }}" as="row" hint-placeholder-count="6">
+              <tr>
+                <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;text-align:left;">{{ row.label }}</th>
+                <td style="border:1px solid #ddd;padding:4px 8px;font-size:13px;text-align:center;background-color:{{ row.bg }};background-image:{{ row.stripe }};color:{{ row.fg }};">{{ row.pctText }}</td>
+                <td style="border:1px solid #ddd;padding:4px 8px;font-size:13px;text-align:center;">{{ row.count }}</td>
+              </tr>
+            </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #ddd;">
+      <sc-if value="{{ gridReady }}" hint-placeholder-val="{{ true }}">
+        <div style="font-weight:600;margin-bottom:6px;text-align:center;">{{ gridCaption }}</div>
+        <div style="max-width:100%;overflow-x:auto;display:flex;justify-content:center;">
+          <table style="width:max-content;white-space:nowrap;">
+            <tbody>
+            <tr>
+              <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;"></th>
+              <sc-for list="{{ gridCols }}" as="c" hint-placeholder-count="6">
+                <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;">{{ c }}</th>
+              </sc-for>
+            </tr>
+            <sc-for list="{{ gridRows }}" as="gr" hint-placeholder-count="5">
+              <tr>
+                <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;text-align:left;">{{ gr.label }}</th>
+                <sc-for list="{{ gr.cells }}" as="cell" hint-placeholder-count="6">
+                  <td style="border:1px solid #ddd;padding:4px 8px;font-size:13px;text-align:center;background-color:{{ cell.bg }};background-image:{{ cell.stripe }};color:{{ cell.fg }};">{{ cell.pctText }}<br><small>{{ cell.count }}</small></td>
+                </sc-for>
+              </tr>
+            </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+      <sc-if value="{{ gridNeedsTwo }}" hint-placeholder-val="{{ false }}">
+        <p style="color:#666;text-align:center;">Select exactly 2 factors for the 2-way table.</p>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===================== POINT SYSTEM VIEW ===================== -->
+  <sc-if value="{{ isSim }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <!-- editor -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:start;margin-bottom:12px;">
+      <sc-for list="{{ editorCards }}" as="ec" hint-placeholder-count="4">
+        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <div onClick="{{ ec.onToggle }}" style="display:flex;align-items:center;justify-content:center;gap:6px;font-weight:600;text-align:center;cursor:{{ ec.cursor }};user-select:none;">
+            <span>{{ ec.title }}</span><span class="info" tabindex="0">i<span class="infotip">{{ ec.help }}</span></span><span style="font-size:12px;color:#888;">{{ ec.chevron }}</span>
+          </div>
+          <sc-if value="{{ ec.expanded }}" hint-placeholder-val="{{ true }}">
+          <sc-for list="{{ ec.items }}" as="it" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;">
+              <span style="font-size:13px;color:#333;">{{ it.label }}</span>
+              <input class="num" type="number" value="{{ it.value }}" min="0" step="{{ it.step }}" onChange="{{ it.onChange }}" onBlur="{{ it.onBlur }}" style="width:62px;padding:6px 8px;font-size:13px;text-align:center;border:1px solid {{ it.border }};border-radius:6px;background:{{ it.bg }};font-weight:bold;color:#111;" />
+            </div>
+          </sc-for>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+      <button onClick="{{ onReset }}" style="padding:7px 14px;font-size:13px;cursor:pointer;background:#fff;color:#b91c1c;border:1px solid #e5b4b4;border-radius:6px;font-weight:500;">Reset to official values</button>
+    </div>
+
+    <!-- comparison -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:start;">
+      <sc-for list="{{ compCards }}" as="card" hint-placeholder-count="4">
+        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <table>
+            <caption style="font-weight:600;margin-bottom:6px;">{{ card.title }}</caption>
+            <tbody>
+            <tr>
+              <th style="border:1px solid #ddd;padding:4px 6px;font-size:12px;background:#f4f4f4;">Value</th>
+              <th style="border:1px solid #ddd;padding:4px 6px;font-size:12px;background:#f4f4f4;">Official</th>
+              <th style="border:1px solid #ddd;padding:4px 6px;font-size:12px;background:#f4f4f4;">Yours</th>
+              <th style="border:1px solid #ddd;padding:4px 6px;font-size:12px;background:#f4f4f4;">Δ</th>
+            </tr>
+            <sc-for list="{{ card.rows }}" as="row" hint-placeholder-count="6">
+              <tr>
+                <th style="border:1px solid #ddd;padding:4px 6px;font-size:12px;background:#f4f4f4;text-align:left;">{{ row.label }}</th>
+                <td style="border:1px solid #ddd;padding:4px 6px;font-size:12.5px;text-align:center;background-color:{{ row.offBg }};color:{{ row.offFg }};">{{ row.offText }}</td>
+                <td style="border:1px solid #ddd;padding:4px 6px;font-size:12.5px;text-align:center;background-color:{{ row.newBg }};color:{{ row.newFg }};">{{ row.newText }}</td>
+                <td style="border:1px solid #ddd;padding:4px 6px;font-size:12px;font-weight:bold;text-align:center;color:{{ row.dColor }};">{{ row.dText }}</td>
+              </tr>
+            </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- 2-way table under the point system -->
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #ddd;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <span style="font-weight:600;font-size:14px;color:#444;">2-way table</span>
+        <span style="font-size:12.5px;color:#777;">advancement rate under your point system</span>
+        <div style="margin-left:auto;display:flex;gap:2px;background:#e5e7eb;padding:3px;border-radius:8px;flex-wrap:wrap;">
+          <sc-for list="{{ gridToggles }}" as="g" hint-placeholder-count="4">
+            <div onClick="{{ g.onClick }}" style="padding:6px 12px;font-size:13px;cursor:pointer;border-radius:6px;user-select:none;color:{{ g.color }};background:{{ g.bg }};box-shadow:{{ g.shadow }};">{{ g.label }}</div>
+          </sc-for>
+        </div>
+      </div>
+      <sc-if value="{{ simGridReady }}" hint-placeholder-val="{{ true }}">
+        <div style="font-weight:600;margin-bottom:6px;text-align:center;">{{ simGridCaption }}</div>
+        <div style="max-width:100%;overflow-x:auto;display:flex;justify-content:center;">
+          <table style="width:max-content;white-space:nowrap;">
+            <tbody>
+            <tr>
+              <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;"></th>
+              <sc-for list="{{ simGridCols }}" as="c" hint-placeholder-count="6">
+                <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;">{{ c }}</th>
+              </sc-for>
+            </tr>
+            <sc-for list="{{ simGridRows }}" as="gr" hint-placeholder-count="5">
+              <tr>
+                <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;text-align:left;">{{ gr.label }}</th>
+                <sc-for list="{{ gr.cells }}" as="cell" hint-placeholder-count="6">
+                  <td style="border:1px solid #ddd;padding:4px 8px;font-size:13px;text-align:center;background-color:{{ cell.bg }};background-image:{{ cell.stripe }};color:{{ cell.fg }};">{{ cell.pctText }}<br><small>{{ cell.count }}</small></td>
+                </sc-for>
+              </tr>
+            </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+      <sc-if value="{{ simGridNeedsTwo }}" hint-placeholder-val="{{ false }}">
+        <p style="color:#666;text-align:center;">Select exactly 2 factors for the 2-way table.</p>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- modal -->
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onCloseModal }}" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;justify-content:center;align-items:center;">
+      <div onClick="{{ stop }}" style="background:#fff;padding:24px;border-radius:12px;max-width:520px;margin:16px;position:relative;max-height:80vh;overflow-y:auto;">
+        <div onClick="{{ onCloseModal }}" style="position:absolute;top:12px;right:12px;font-size:24px;cursor:pointer;color:#666;line-height:1;">×</div>
+        <h2 style="margin-top:0;font-size:1.25rem;">How percentages are calculated</h2>
+        <p style="color:#444;line-height:1.5;">Percentages show the <strong>historical advancement rate</strong> for teams in each category based on this season's events.</p>
+        <p style="color:#444;line-height:1.5;">For example, if "2nd place award" shows "75%" with "15/20", it means 20 teams won a 2nd place award this season (at events matching your selected team size), and 15 of them finished with an advancement rank at or above the "Advancing" cutoff.</p>
+        <h3 style="font-size:1rem;margin-bottom:8px;">2-way table</h3>
+        <p style="color:#444;line-height:1.5;">The 2-way table shows advancement rates for combinations of two factors. Each cell shows the advancement rate for teams with that specific result on both factors.</p>
+        <h3 style="font-size:1rem;margin-bottom:8px;">Point system tab</h3>
+        <p style="color:#444;line-height:1.5;">The Point system tab re-ranks every event under point values you choose and recomputes who would advance, so you can compare your system's advancement rates against the official ones.</p>
+        <h3 style="font-size:1rem;margin-bottom:8px;">Striped cells</h3>
+        <p style="color:#444;line-height:1.5;">Cells with diagonal stripes indicate low sample size (4 or fewer teams). These percentages may be less reliable.</p>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  AWARD_LABELS = { 60: "Inspire 1st (60)", 30: "Inspire 2nd (30)", 15: "Inspire 3rd (15)", 12: "1st place award (12)", 6: "2nd place award (6)", 3: "3rd place award (3)", 0: "No awards (0)" };
+  AWARD_SORT = { 60: 1, 30: 2, 15: 3, 12: 4, 6: 5, 3: 6, 0: 7 };
+  PLAYOFF_LABELS = { 40: "1st playoffs (40)", 20: "2nd playoffs (20)", 10: "3rd playoffs (10)", 5: "4th playoffs (5)", 0: "Not top 4 (0)" };
+  PLAYOFF_SORT = { 40: 1, 20: 2, 10: 3, 5: 4, 0: 5 };
+
+  FACTORS = [
+    { id: "award", label: "Awards", full: "Awards" },
+    { id: "playoff", label: "Playoffs", full: "Playoffs placing" },
+    { id: "alliance", label: "Alliances", full: "Alliance seed" },
+    { id: "qual", label: "Quals", full: "Qual rank" },
+  ];
+
+  DEFAULT_PV = { award: { i1: 60, i2: 30, i3: 15, a1: 12, a2: 6, a3: 3 }, playoff: { p1: 40, p2: 20, p3: 10, p4: 5 }, allianceTop: 20, qualW: 1 };
+  RANGE_CODES = { "0-10": "0", "11-20": "1", "21-30": "2", "31-40": "3", "40+": "4", custom: "c" };
+  CODE_RANGES = { 0: "0-10", 1: "11-20", 2: "21-30", 3: "31-40", 4: "40+", c: "custom" };
+
+  state = {
+    tab: "odds", loaded: false,
+    range: "21-30", minTeams: 21, maxTeams: 30, threshold: 6,
+    grid: ["playoff", "award"],
+    modalOpen: false,
+    isMobile: false,
+    factorsOpen: false,
+    editorCardsOpen: {},
+    drafts: {},
+    pv: JSON.parse(JSON.stringify(this.DEFAULT_PV)),
+  };
+
+  // Controlled numeric input that may be temporarily empty while typing.
+  // apply(n) commits a valid number live; emptyApply() runs when the box is left empty/invalid.
+  numH(id, curVal, apply, emptyApply) {
+    const d = this.state.drafts[id];
+    return {
+      value: d !== undefined ? d : String(curVal),
+      onChange: (e) => {
+        const raw = e.target.value;
+        this.setState((s) => ({ drafts: { ...s.drafts, [id]: raw } }));
+        // empty box computes as 0 live, but stays visually empty until blur
+        if (raw === "") apply(0);
+        else if (!Number.isNaN(Number(raw))) apply(Number(raw));
+      },
+      onBlur: (e) => {
+        const raw = e.target.value;
+        this.setState((s) => { const drafts = { ...s.drafts }; delete drafts[id]; return { drafts }; });
+        if (raw === "" || Number.isNaN(Number(raw))) emptyApply();
+      },
+    };
+  }
+
+  componentDidMount() {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const patch = {};
+      if (this.isAdjustRoute()) patch.tab = "sim";
+      const view = q.get("v") || q.get("view");
+      if (view === "p" || view === "points") patch.tab = "sim";
+      const pts = q.get("p") || q.get("pts");
+      if (pts) { const pv = this.parsePV(pts); if (pv) patch.pv = pv; }
+      const r = this.parseRange(q.get("r")); if (r) patch.range = r;
+      const a = q.get("a"); if (a !== null && Number.isFinite(Number(a))) patch.threshold = Math.max(1, parseInt(a, 10) || 1);
+      const mn = q.get("n") || q.get("mn"); if (mn !== null && Number.isFinite(Number(mn))) patch.minTeams = Math.max(0, parseInt(mn, 10) || 0);
+      const mx = q.get("x") || q.get("mx"); if (mx !== null && Number.isFinite(Number(mx))) patch.maxTeams = Math.max(0, parseInt(mx, 10) || 0);
+      if (Object.keys(patch).length) this.setState(patch, () => this.syncURL());
+    } catch (e) {}
+    const t = () => { if (window.ADV_DATA) { this.prep(window.ADV_DATA); this.setState({ loaded: true }); } else setTimeout(t, 40); };
+    t();
+    const onResize = () => { const m = window.innerWidth < 640; if (m !== this.state.isMobile) this.setState({ isMobile: m }); };
+    this._onResize = onResize; window.addEventListener("resize", onResize); onResize();
+  }
+  prep(D) {
+    this.rows = D.rows; // [ei,tc,awPts,plPts,alPts,qPts,qr,advRank,adv]
+    const byEv = [];
+    for (const r of D.rows) { if (!byEv[r[0]]) byEv[r[0]] = []; byEv[r[0]].push(r); }
+    this.byEv = byEv;
+  }
+
+  // ---- color (exact replica of original) ----
+  hslToRgb(h, s, l) { s /= 100; l /= 100; const k = (n) => (n + h / 30) % 12; const a = s * Math.min(l, 1 - l); const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))]; }
+  colorForPct(pct) { const capped = Math.max(0, Math.min(100, pct)); const hue = capped * 1.2; const [R, G, B] = this.hslToRgb(hue, 85, 55); const bright = (R * 299 + G * 587 + B * 114) / 1000; return { bg: `hsl(${hue}, 85%, 55%)`, fg: bright > 140 ? "#000" : "#fff" }; }
+  stripe(total) { return total <= 4 ? "repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(0,0,0,0.08) 5px,rgba(0,0,0,0.08) 10px)" : "none"; }
+
+  // ---- factor normalize ----
+  getVal(fid, r) { return fid === "award" ? r[2] : fid === "playoff" ? r[3] : fid === "alliance" ? r[4] : r[6]; }
+  normalize(fid, val) {
+    if (val == null || val === "") return null;
+    if (fid === "award") return { key: String(val), label: this.AWARD_LABELS[val] || `${val} award pts`, sort: this.AWARD_SORT[val] ?? 1000 };
+    if (fid === "playoff") return { key: String(val), label: this.PLAYOFF_LABELS[val] || `${val} playoff pts`, sort: this.PLAYOFF_SORT[val] ?? 1000 };
+    if (fid === "alliance") {
+      if (val === 0) return { key: "0", label: "Not selected (0)", sort: 999 };
+      const seed = 21 - val;
+      return { key: String(val), label: `Seed ${seed} (${val})`, sort: seed };
+    }
+    // qual
+    const num = Number(val); if (!Number.isFinite(num) || num <= 0) return null;
+    if (num <= 15) return { key: String(num), label: `#${num}`, sort: num };
+    const bs = Math.floor((num - 1) / 5) * 5 + 1, be = bs + 4;
+    return { key: `${bs}-${be}`, label: `#${bs}-${be}`, sort: bs };
+  }
+  isAdvancing(r, threshold) { return r[7] !== 9999 && r[7] <= threshold; }
+
+  collapseGroups(groups, fid) {
+    let sorted = [...groups].sort((a, b) => a.sort - b.sort);
+    const mergeMap = new Map(); sorted.forEach((g) => mergeMap.set(g.key, g.key));
+    if (fid === "qual" && sorted.length > 0) {
+      let th = 0, tt = 0, split = sorted.length;
+      for (let i = sorted.length - 1; i >= 0; i--) {
+        const g = sorted[i]; if (g.sort <= 11) break;
+        const nh = th + g.hits, nt = tt + g.total; if (nt === 0) continue;
+        if (nh / nt <= 0.1) { th = nh; tt = nt; split = i; } else break;
+      }
+      if (split < sorted.length) {
+        const kept = sorted.slice(0, split), collapsed = sorted.slice(split);
+        if (collapsed.length) {
+          const first = collapsed[0]; let lb = first.label.replace("#", ""); if (lb.includes("-")) lb = lb.split("-")[0];
+          collapsed.forEach((g) => mergeMap.set(g.key, "collapsed"));
+          kept.push({ key: "collapsed", label: `#${lb}+`, sort: first.sort, total: tt, hits: th });
+          sorted = kept;
+        }
+      }
+    }
+    return { groups: sorted, mergeMap };
+  }
+
+  filtered() {
+    const s = this.state; let min, max;
+    if (s.range === "custom") { min = Math.max(0, s.minTeams | 0); max = Math.max(min, s.maxTeams | 0); }
+    else { const m = { "0-10": [0, 10], "11-20": [11, 20], "21-30": [21, 30], "31-40": [31, 40], "40+": [40, 99999] }[s.range]; [min, max] = m; }
+    return this.rows.filter((r) => r[1] >= min && r[1] <= max && r[7] !== 9999);
+  }
+  countEvents(rows) { return new Set(rows.map((r) => r[0])).size; }
+
+  aggFactor(rows, fid, threshold, lowData) {
+    const groups = new Map();
+    for (const r of rows) {
+      const meta = this.normalize(fid, this.getVal(fid, r)); if (!meta) continue;
+      if (!groups.has(meta.key)) groups.set(meta.key, { ...meta, total: 0, hits: 0 });
+      const g = groups.get(meta.key); g.total++; if (this.isAdvancing(r, threshold)) g.hits++;
+    }
+    let arr = [...groups.values()]; if (!lowData) arr = arr.filter((g) => g.total > 3);
+    return this.collapseGroups(arr, fid).groups;
+  }
+
+  uniqCount(rows, fid) { const s = new Set(); for (const r of rows) { const m = this.normalize(fid, this.getVal(fid, r)); if (m) s.add(m.key); } return s.size; }
+
+  // Set of team-rows that advance under the custom point system (same per-event advancing count).
+  newAdvSet(rows, threshold, pv) {
+    const byEv = new Map();
+    for (const r of rows) { if (!byEv.has(r[0])) byEv.set(r[0], []); byEv.get(r[0]).push(r); }
+    const set = new Set();
+    for (const teams of byEv.values()) {
+      const N = teams.filter((r) => this.isAdvancing(r, threshold)).length;
+      const order = teams.map((r) => ({ r, s: this.newTotal(r, pv) })).sort((a, b) => b.s - a.s);
+      for (let i = 0; i < N; i++) set.add(order[i].r);
+    }
+    return set;
+  }
+
+  buildGrid(rows, threshold, sel, lowData, advFn) {
+    if (!advFn) advFn = (r) => this.isAdvancing(r, threshold);
+    const a = sel[0], b = sel[1];
+    const ca = this.uniqCount(rows, a), cb = this.uniqCount(rows, b);
+    const moreOnY = ca <= cb; const xId = moreOnY ? b : a, yId = moreOnY ? a : b;
+    const xV = new Map(), yV = new Map(), combos = new Map();
+    for (const r of rows) {
+      const xm = this.normalize(xId, this.getVal(xId, r)), ym = this.normalize(yId, this.getVal(yId, r));
+      if (!xm || !ym) continue; const adv = advFn(r);
+      if (!xV.has(xm.key)) xV.set(xm.key, { ...xm, total: 0, hits: 0 }); const xe = xV.get(xm.key); xe.total++; if (adv) xe.hits++;
+      if (!yV.has(ym.key)) yV.set(ym.key, { ...ym, total: 0, hits: 0 }); const ye = yV.get(ym.key); ye.total++; if (adv) ye.hits++;
+      const ck = xm.key + "|||" + ym.key; if (!combos.has(ck)) combos.set(ck, { total: 0, hits: 0 }); const c = combos.get(ck); c.total++; if (adv) c.hits++;
+    }
+    let xl = [...xV.values()], yl = [...yV.values()];
+    if (!lowData) { xl = xl.filter((x) => x.total > 4); yl = yl.filter((y) => y.total > 4); }
+    const xc = this.collapseGroups(xl, xId), yc = this.collapseGroups(yl, yId);
+    xl = xc.groups; yl = yc.groups;
+    const nc = new Map();
+    for (const [ok, v] of combos) { const [ox, oy] = ok.split("|||"); if (!xc.mergeMap.has(ox) || !yc.mergeMap.has(oy)) continue; const nk = xc.mergeMap.get(ox) + "|||" + yc.mergeMap.get(oy); if (!nc.has(nk)) nc.set(nk, { total: 0, hits: 0 }); const c = nc.get(nk); c.total += v.total; c.hits += v.hits; }
+    const fy = this.FACTORS.find((f) => f.id === yId), fx = this.FACTORS.find((f) => f.id === xId);
+    return { ok: xl.length && yl.length, caption: `${fy.full} vs ${fx.full}`, xl, yl, nc };
+  }
+
+  // ---- sim ----
+  newTotal(r, pv) {
+    // award: scale official award_points by the ratio of the chosen value to its default for this
+    // award + placement, so 2nd/3rd scaling is preserved and defaults reproduce official points exactly.
+    const ai = r[9], place = r[10];
+    let aw = r[2];
+    if (ai >= 0 && place >= 1 && place <= 3) {
+      const insp = [60, 30, 15], judged = [12, 6, 3];
+      const def = ai === 0 ? insp[place - 1] : judged[place - 1];
+      const eff = ai === 0 ? [pv.award.i1, pv.award.i2, pv.award.i3][place - 1] : [pv.award.a1, pv.award.a2, pv.award.a3][place - 1];
+      aw = r[2] * (eff / def);
+    }
+    const pl = ({ 40: pv.playoff.p1, 20: pv.playoff.p2, 10: pv.playoff.p3, 5: pv.playoff.p4, 0: 0 })[r[3]] ?? 0;
+    const al = r[4] > 0 ? Math.max(0, pv.allianceTop - ((21 - r[4]) - 1)) : 0;
+    return aw + pl + al + r[5] * pv.qualW;
+  }
+  computeSim(rows, threshold, pv, lowData) {
+    // group rows by event within this filtered set
+    const byEv = new Map();
+    for (const r of rows) { if (!byEv.has(r[0])) byEv.set(r[0], []); byEv.get(r[0]).push(r); }
+    const facAgg = {}; this.FACTORS.forEach((f) => (facAgg[f.id] = new Map()));
+    let spots = 0, gained = 0;
+    for (const teams of byEv.values()) {
+      const N = teams.filter((r) => this.isAdvancing(r, threshold)).length; spots += N;
+      const order = teams.map((r) => ({ r, s: this.newTotal(r, pv) })).sort((a, b) => b.s - a.s);
+      const newAdv = new Set(); for (let i = 0; i < N; i++) newAdv.add(order[i].r);
+      for (const r of teams) {
+        const off = this.isAdvancing(r, threshold) ? 1 : 0, nw = newAdv.has(r) ? 1 : 0;
+        if (nw && !off) gained++;
+        for (const f of this.FACTORS) {
+          const m = this.normalize(f.id, this.getVal(f.id, r)); if (!m) continue;
+          const g = facAgg[f.id]; if (!g.has(m.key)) g.set(m.key, { ...m, total: 0, hits: 0, off: 0, nw: 0 });
+          const e = g.get(m.key); e.total++; e.off += off; e.nw += nw; e.hits += off;
+        }
+      }
+    }
+    const cards = this.FACTORS.map((f) => {
+      let arr = [...facAgg[f.id].values()]; if (!lowData) arr = arr.filter((g) => g.total > 3);
+      const collapsed = this.collapseGroups(arr, f.id).groups;
+      // collapseGroups loses off/nw on merged tail (it builds a new obj from hits/total). Recompute % from hits as official already; need nw too.
+      return { id: f.id, title: f.label, groups: collapsed, raw: arr };
+    });
+    return { cards, spots, gained };
+  }
+
+  // collapse that preserves off & nw
+  collapsePair(arr, fid) {
+    let sorted = [...arr].sort((a, b) => a.sort - b.sort);
+    if (fid === "qual" && sorted.length) {
+      let to = 0, tn = 0, tt = 0, split = sorted.length;
+      for (let i = sorted.length - 1; i >= 0; i--) { const g = sorted[i]; if (g.sort <= 11) break; const nt = tt + g.total; if (nt === 0) continue; if ((to + g.off) / nt <= 0.1) { to += g.off; tn += g.nw; tt = nt; split = i; } else break; }
+      if (split < sorted.length) { const kept = sorted.slice(0, split), col = sorted.slice(split); if (col.length) { const first = col[0]; let lb = first.label.replace("#", ""); if (lb.includes("-")) lb = lb.split("-")[0]; kept.push({ key: "collapsed", label: `#${lb}+`, sort: first.sort, total: tt, off: to, nw: tn }); sorted = kept; } }
+    }
+    return sorted;
+  }
+
+  // ---- handlers ----
+  setTab = (t) => { const from = this.state.tab; this.setState({ tab: t }); this.syncURL({ tab: t }); if (from !== t) this.trackEvent("switch_view", { from_view: from, to_view: t }); };
+  routeURL(path) { return new URL(path, document.baseURI || window.location.href); }
+  isAdjustRoute(url = window.location) { return /\/adjust(?:\/|\/index\.html)?$/.test(url.pathname); }
+  onCompare = () => { this.trackEvent("nav_to_compare", { source: this.isAdjustRoute() ? "adjust_header_button" : "main_header_button" }); window.open(this.routeURL("compare/").toString(), "_self"); };
+  onAdjust = () => { this.trackEvent("adjust_advancement_system", { source: this.isAdjustRoute() ? "adjust_header_button" : "main_header_button", target_view: "point_system" }); window.open(this.shareURL("adjust/", { tab: "sim" }).toString(), "_self"); };
+  trackEvent(eventName, params = {}) { if (typeof window.gtag === "function") window.gtag("event", eventName, { event_category: "engagement", page_path: window.location.pathname, app_view: this.state.tab, ...params }); }
+  // ---- shareable-link state (advancement / point system) ----
+  // Compact key -> [category, subkey?] map for point values in the shareable link.
+  PV_KEYS = [["i1", "award", "i1"], ["i2", "award", "i2"], ["i3", "award", "i3"], ["a1", "award", "a1"], ["a2", "award", "a2"], ["a3", "award", "a3"], ["p1", "playoff", "p1"], ["p2", "playoff", "p2"], ["p3", "playoff", "p3"], ["p4", "playoff", "p4"], ["at", "allianceTop"], ["qw", "qualW"]];
+  clonePV(pv = this.DEFAULT_PV) { return JSON.parse(JSON.stringify(pv)); }
+  serializePV(pv) { const d = this.DEFAULT_PV; const out = []; for (const [k, c, sub] of this.PV_KEYS) { const val = sub ? pv[c][sub] : pv[c]; const def = sub ? d[c][sub] : d[c]; if (val !== def) out.push(k + "-" + val); } return out.join("_"); }
+  parseLegacyPV(str) { const n = String(str).split(",").map(Number); if (n.length !== 12 || n.some((x) => !Number.isFinite(x))) return null; return { award: { i1: n[0], i2: n[1], i3: n[2], a1: n[3], a2: n[4], a3: n[5] }, playoff: { p1: n[6], p2: n[7], p3: n[8], p4: n[9] }, allianceTop: n[10], qualW: n[11] }; }
+  parsePV(str) { if (String(str).includes(",")) return this.parseLegacyPV(str); const pv = this.clonePV(); const idx = {}; let found = false; for (const t of this.PV_KEYS) idx[t[0]] = t; for (const part of String(str).split("_")) { const i = part.indexOf("-"); if (i < 0) continue; const t = idx[part.slice(0, i)], v = Number(part.slice(i + 1)); if (!t || !Number.isFinite(v)) continue; found = true; if (t[2]) pv[t[1]][t[2]] = v; else pv[t[1]] = v; } return found ? pv : null; }
+  parseRange(raw) { if (!raw) return null; return this.RANGE_CODES[raw] ? raw : this.CODE_RANGES[raw] || null; }
+  shareURL(path, ov = {}) { const st = { ...this.state, ...ov }; const url = path ? this.routeURL(path) : new URL(window.location.href); const sp = url.searchParams; ["v", "view", "p", "pts", "r", "a", "n", "mn", "x", "mx"].forEach((k) => sp.delete(k)); if (st.tab === "sim" && !this.isAdjustRoute(url)) sp.set("v", "p"); const pts = this.serializePV(st.pv); if (pts) sp.set("p", pts); if (st.range !== "21-30") sp.set("r", this.RANGE_CODES[st.range] || st.range); if (st.threshold !== 6) sp.set("a", String(st.threshold)); if (st.range === "custom") { if (st.minTeams !== 21) sp.set("n", String(st.minTeams)); if (st.maxTeams !== 30) sp.set("x", String(st.maxTeams)); } return url; }
+  // Only writes params that differ from defaults, to keep the link short.
+  syncURL(ov = {}) { try { window.history.replaceState(null, "", this.shareURL(null, ov)); } catch (e) {} }
+  openModal = () => { this.trackEvent("open_learn_more_modal"); this.setState({ modalOpen: true }); };
+  closeModal = () => { this.trackEvent("close_modal", { method: "click" }); this.setState({ modalOpen: false }); };
+  setRange = (e) => { const v = e.target.value; this.setState({ range: v }); this.syncURL({ range: v }); this.trackEvent("select_team_range", { range_value: v }); };
+  setThresholdValue = (v) => { this.setState({ threshold: v }); this.syncURL({ threshold: v }); this.trackEvent("change_threshold", { threshold: v }); };
+  setMinValue = (v) => { this.setState({ minTeams: v }); this.syncURL({ minTeams: v }); this.trackEvent("change_custom_min_teams", { min_teams: v }); };
+  setMaxValue = (v) => { this.setState({ maxTeams: v }); this.syncURL({ maxTeams: v }); this.trackEvent("change_custom_max_teams", { max_teams: v }); };
+  setThreshold = (e) => this.setThresholdValue(Math.max(1, parseInt(e.target.value, 10) || 1));
+  setMin = (e) => this.setMinValue(Math.max(0, parseInt(e.target.value, 10) || 0));
+  setMax = (e) => this.setMaxValue(Math.max(0, parseInt(e.target.value, 10) || 0));
+  toggleGrid = (fid) => { const selected = !this.state.grid.includes(fid); this.trackEvent("toggle_grid_axis", { factor_id: fid, selected }); this.setState((s) => { let g = [...s.grid]; const i = g.indexOf(fid); if (i >= 0) g.splice(i, 1); else { if (g.length >= 2) g.shift(); g.push(fid); } return { grid: g }; }); };
+  toggleEditorCard = (id) => { const expanded = !this.state.editorCardsOpen[id]; this.trackEvent("toggle_point_editor_card", { card_id: id, expanded, is_mobile: this.state.isMobile }); this.setState((st) => ({ editorCardsOpen: { ...st.editorCardsOpen, [id]: expanded } })); };
+  reset = () => { const hadChanges = this.serializePV(this.state.pv) !== ""; const pv = this.clonePV(); this.setState({ pv }); this.syncURL({ pv }); this.trackEvent("reset_point_values", { had_changes: hadChanges }); };
+  setPV = (cat, key, val) => { const v = Math.max(0, parseFloat(val) || 0); const pv = this.clonePV(this.state.pv); if (cat === "allianceTop") pv.allianceTop = v; else if (cat === "qualW") pv.qualW = v; else pv[cat][key] = v; const def = cat === "allianceTop" ? this.DEFAULT_PV.allianceTop : cat === "qualW" ? this.DEFAULT_PV.qualW : this.DEFAULT_PV[cat][key]; this.setState({ pv }); this.syncURL({ pv }); this.trackEvent("change_point_value", { point_category: cat, point_key: key, point_value: v, is_default: v === def }); };
+
+  renderVals() {
+    const s = this.state;
+    const tabPill = (id, label) => { const on = s.tab === id; return { label, onClick: () => this.setTab(id), fw: on ? "700" : "500", color: on ? "#111" : "#555", bg: on ? "#fff" : "transparent", shadow: on ? "0 1px 2px rgba(0,0,0,0.1)" : "none" }; };
+    const thresholdH = this.numH("threshold", s.threshold, (n) => this.setThresholdValue(Math.max(1, Math.floor(n))), () => this.setThresholdValue(1));
+    const minH = this.numH("minTeams", s.minTeams, (n) => this.setMinValue(Math.max(0, Math.floor(n))), () => this.setMinValue(0));
+    const maxH = this.numH("maxTeams", s.maxTeams, (n) => this.setMaxValue(Math.max(0, Math.floor(n))), () => this.setMaxValue(0));
+    const common = { loading: !s.loaded, ready: s.loaded, isOdds: s.loaded && s.tab === "odds", isSim: s.loaded && s.tab === "sim", tabs: [tabPill("odds", "Odds"), tabPill("sim", "Point system")], range: s.range, thresholdH, isCustom: s.range === "custom", minH, maxH, onRange: this.setRange, onCompare: this.onCompare, onReset: this.reset, modalOpen: s.modalOpen, onLearnMore: this.openModal, onCloseModal: this.closeModal, stop: (e) => e.stopPropagation(), onAdjust: this.onAdjust, adjustBg: s.tab === "sim" ? "#1d4ed8" : "#2563eb", adjustColor: "#fff", adjustBorder: s.tab === "sim" ? "#1d4ed8" : "#2563eb" };
+
+    if (!s.loaded) return { ...common, gridToggles: [], factorCards: [], gridCols: [], gridRows: [], editorCards: [], compCards: [] };
+
+    const rows = this.filtered();
+    const evCount = this.countEvents(rows);
+    const lowData = evCount <= 4;
+
+    const gridToggles = this.FACTORS.map((f) => { const on = s.grid.includes(f.id); return { label: f.label, onClick: () => this.toggleGrid(f.id), color: on ? "#111" : "#555", bg: on ? "#fff" : "transparent", shadow: on ? "0 1px 2px rgba(0,0,0,0.1)" : "none" }; });
+    // On mobile the factor selector collapses behind a tappable summary
+    const gridSummary = s.grid.length === 2 ? s.grid.map((id) => this.FACTORS.find((f) => f.id === id).label).join(" × ") : "choose 2 factors";
+    const factorsCollapsed = s.isMobile && !s.factorsOpen;
+    const factorsExpanded = !factorsCollapsed;
+    const onToggleFactors = () => { const expanded = !this.state.factorsOpen; this.trackEvent("toggle_factor_selector", { expanded }); this.setState({ factorsOpen: expanded }); };
+
+    // ---- ODDS ----
+    let factorCards = [], gridCols = [], gridRows = [], gridCaption = "", gridReady = false, gridNeedsTwo = false, statusPre = "";
+    if (s.tab === "odds") {
+      statusPre = `Filtered to ${rows.length} teams across ${evCount} events |`;
+      factorCards = this.FACTORS.map((f) => ({
+        title: f.full,
+        rows: this.aggFactor(rows, f.id, s.threshold, lowData).map((g) => {
+          const pct = g.total ? (g.hits / g.total) * 100 : 0; const c = this.colorForPct(pct);
+          return { label: g.label, pctText: pct.toFixed(1) + "%", count: g.hits + "/" + g.total, bg: c.bg, fg: c.fg, stripe: this.stripe(g.total) };
+        }),
+      }));
+      if (s.grid.length === 2) {
+        const G = this.buildGrid(rows, s.threshold, s.grid, lowData);
+        if (G.ok) {
+          gridReady = true; gridCaption = G.caption; gridCols = G.xl.map((x) => x.label);
+          gridRows = G.yl.map((y) => ({ label: y.label, cells: G.xl.map((x) => { const cell = G.nc.get(x.key + "|||" + y.key); if (!cell) return { pctText: "–", count: "", bg: "#f9f9f9", fg: "#888", stripe: "none" }; const pct = (cell.hits / cell.total) * 100; const c = this.colorForPct(pct); return { pctText: pct.toFixed(1) + "%", count: cell.hits + "/" + cell.total, bg: c.bg, fg: c.fg, stripe: this.stripe(cell.total) }; }) }));
+        }
+      } else gridNeedsTwo = true;
+    }
+
+    // ---- SIM ----
+    let editorCards = [], compCards = [], simGridCols = [], simGridRows = [], simGridCaption = "", simGridReady = false, simGridNeedsTwo = false;
+    if (s.tab === "sim") {
+      const pv = s.pv, d = this.DEFAULT_PV;
+      const inp = (cat, key, label, val, def, step) => { const h = this.numH("pv:" + cat + ":" + key, val, (n) => this.setPV(cat, key, n), () => this.setPV(cat, key, 0)); return { label, value: h.value, onChange: h.onChange, onBlur: h.onBlur, step: step || 1, border: val !== def ? "#2563eb" : "#ccc", bg: val !== def ? "#eff5ff" : "#fff" }; };
+      const editorBase = [
+        { id: "award", title: "Inspire & awards", help: "Points for winning an award (Inspire is the top award; all other judged awards share the same value). 2nd place earns the 2nd value, 3rd the 3rd.", items: [["i1", "Inspire 1st"], ["i2", "Inspire 2nd"], ["i3", "Inspire 3rd"], ["a1", "Award 1st"], ["a2", "Award 2nd"], ["a3", "Award 3rd"]].map(([k, l]) => inp("award", k, l, pv.award[k], d.award[k])) },
+        { id: "playoff", title: "Playoffs", help: "Points for how far you go in the elimination bracket. Raise these to reward winning matches on the field.", items: [["p1", "Winner"], ["p2", "Finalist"], ["p3", "3rd place"], ["p4", "4th place"]].map(([k, l]) => inp("playoff", k, l, pv.playoff[k], d.playoff[k])) },
+        { id: "alliance", title: "Alliance seed", help: "Points for being picked into an alliance. Seed 1 earns this value; each lower seed earns 1 point less. Raise to reward alliance captains and early picks.", items: [inp("allianceTop", "allianceTop", "Seed 1 value", pv.allianceTop, d.allianceTop)] },
+        { id: "qual", title: "Qual rank", help: "Multiplies each team's qualification-match points. 1× = official, 0× ignores quals entirely, 2× makes qual ranking count twice as much.", items: [inp("qualW", "qualW", "Qual weight ×", pv.qualW, d.qualW, 0.25)] },
+      ];
+      editorCards = editorBase.map((c) => {
+        const open = !!s.editorCardsOpen[c.id];
+        const expanded = !(s.isMobile && !open);
+        return { ...c, expanded, chevron: s.isMobile ? (open ? "▴" : "▾") : "", cursor: s.isMobile ? "pointer" : "default", onToggle: () => this.toggleEditorCard(c.id) };
+      });
+      const sim = this.computeSim(rows, s.threshold, pv, lowData);
+      compCards = sim.cards.map((card) => ({
+        title: card.title,
+        rows: this.collapsePair(card.raw, card.id).map((g) => {
+          const off = g.total ? (g.off / g.total) * 100 : 0, nw = g.total ? (g.nw / g.total) * 100 : 0, dlt = nw - off;
+          const co = this.colorForPct(off), cn = this.colorForPct(nw);
+          return { label: g.label, offText: off.toFixed(0) + "%", newText: nw.toFixed(0) + "%", offBg: co.bg, offFg: co.fg, newBg: cn.bg, newFg: cn.fg, dText: (dlt > 0 ? "+" : "") + dlt.toFixed(0), dColor: dlt > 0.5 ? "#15803d" : dlt < -0.5 ? "#b91c1c" : "#999" };
+        }),
+      }));
+      // 2-way table under the custom point system
+      if (s.grid.length === 2) {
+        const advFn0 = this.newAdvSet(rows, s.threshold, pv);
+        const G = this.buildGrid(rows, s.threshold, s.grid, lowData, (r) => advFn0.has(r));
+        if (G.ok) {
+          simGridReady = true; simGridCaption = G.caption; simGridCols = G.xl.map((x) => x.label);
+          simGridRows = G.yl.map((y) => ({ label: y.label, cells: G.xl.map((x) => { const cell = G.nc.get(x.key + "|||" + y.key); if (!cell) return { pctText: "–", count: "", bg: "#f9f9f9", fg: "#888", stripe: "none" }; const pct = (cell.hits / cell.total) * 100; const c = this.colorForPct(pct); return { pctText: pct.toFixed(1) + "%", count: cell.hits + "/" + cell.total, bg: c.bg, fg: c.fg, stripe: this.stripe(cell.total) }; }) }));
+        }
+      } else simGridNeedsTwo = true;
+    }
+
+    return { ...common, gridToggles, gridSummary, factorsCollapsed, factorsExpanded, onToggleFactors, lowData, statusPre, factorCards, gridCols, gridRows, gridCaption, gridReady, gridNeedsTwo, editorCards, compCards, simGridCols, simGridRows, simGridCaption, simGridReady, simGridNeedsTwo };
+  }
+}
+</script>
 </body>
-
 </html>
