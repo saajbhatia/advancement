@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="3D view of FTC advancement odds: explore how awards, playoffs, alliance seed and qual rank combine." />
+<title>Advancement odds for FTC – 3D</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #f5f5f5; color: #111; }
+  input.num::-webkit-outer-spin-button, input.num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  h1 { margin: 0 0 12px; font-size: 1.5rem; }
+  .actionbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .actionbtn { padding: 8px 16px; font-size: 14px; line-height: 1.3; white-space: nowrap; cursor: pointer; border-radius: 6px; font-weight: 500; text-decoration: none; display: inline-block; }
+  @media (max-width: 640px) { .actionbar .actionbtn { flex: 1 1 100%; width: 100%; text-align: center; } }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 8px; }
+  .ctl { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #444; }
+  .ctl > span { font-weight: 500; white-space: nowrap; }
+  .ctl select, .ctl input { padding: 8px 12px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
+  .ctl input { width: 70px; }
+  .sep { width: 1px; height: 24px; background: #ddd; }
+  .pills { display: flex; gap: 2px; background: #e5e7eb; padding: 3px; border-radius: 8px; flex-wrap: wrap; }
+  .pill { padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 6px; user-select: none; color: #555; background: transparent; }
+  .pill.on { color: #111; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+  .status { margin: 8px 0 0; color: #555; font-size: 14px; }
+  .warn { color: #b45309; font-weight: bold; margin: 10px 0; }
+  .stage { position: relative; margin-top: 16px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+  #view { display: block; width: 100%; height: 70vh; min-height: 420px; touch-action: none; cursor: grab; }
+  #view:active { cursor: grabbing; }
+  .caption { position: absolute; top: 12px; left: 0; right: 0; text-align: center; font-weight: 600; pointer-events: none; }
+  .hint { position: absolute; bottom: 10px; right: 12px; font-size: 12px; color: #666; pointer-events: none; }
+  .legend { position: absolute; bottom: 10px; left: 12px; font-size: 12px; color: #555; pointer-events: none; line-height: 1.5; }
+  .legend .bar { width: 160px; height: 10px; border-radius: 3px; border: 1px solid #ddd; background: linear-gradient(90deg, hsl(0,85%,55%), hsl(30,85%,55%), hsl(60,85%,55%), hsl(90,85%,55%), hsl(120,85%,55%)); }
+  .legend .ends { display: flex; justify-content: space-between; width: 160px; }
+  .msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #666; padding: 24px; text-align: center; }
+  #tip { position: fixed; z-index: 20; pointer-events: none; background: #111827; color: #fff; font-size: 12px; line-height: 1.5; padding: 8px 10px; border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.28); display: none; max-width: 260px; }
+  #tip b.big { font-size: 15px; }
+  .resetbtn { position: absolute; top: 10px; right: 12px; padding: 6px 10px; font-size: 12px; cursor: pointer; background: #fff; color: #444; border: 1px solid #ccc; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Advancement odds for FTC – 3D</h1>
+
+  <div class="actionbar">
+    <a class="actionbtn" href="../index.html" style="background:#fff;color:#111;border:1px solid #ccc;">← Back to tables</a>
+    <a class="actionbtn" href="../compare/index.html" style="background:#047857;color:#fff;border:1px solid #047857;">Compare with previous season</a>
+    <a class="actionbtn" href="../adjust/index.html" style="background:#2563eb;color:#fff;border:1px solid #2563eb;">Adjust advancement system</a>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <span>Teams</span>
+      <select id="range" style="min-width:100px;">
+        <option value="0-10">0-10</option>
+        <option value="11-20">11-20</option>
+        <option value="21-30" selected>21-30</option>
+        <option value="31-40">31-40</option>
+        <option value="40+">40+</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+    <div class="ctl">
+      <span>Advancing</span>
+      <input id="threshold" class="num" type="number" min="1" value="6" />
+    </div>
+    <div class="ctl" id="customBox" style="display:none;">
+      <span>Min</span><input id="minTeams" class="num" type="number" min="0" value="21" />
+      <span>Max</span><input id="maxTeams" class="num" type="number" min="0" value="30" />
+    </div>
+    <div class="sep"></div>
+    <div class="ctl" style="gap:12px;flex-wrap:wrap;">
+      <span>Factors (pick 2 or 3)</span>
+      <div class="pills" id="pills"></div>
+    </div>
+    <div class="ctl" id="layerBox" style="display:none;">
+      <span id="layerLabel">Layer</span>
+      <select id="layer"></select>
+    </div>
+  </div>
+
+  <div class="warn" id="lowData" style="display:none;">Warning: Low data, percentages could be inaccurate</div>
+  <div class="status"><span id="status"></span> <strong>Percentages are based on historical events.</strong></div>
+
+  <div class="stage">
+    <canvas id="view"></canvas>
+    <div class="caption" id="caption"></div>
+    <button class="resetbtn" id="resetView">Reset view</button>
+    <div class="legend">
+      <div id="legendNote"></div>
+      <div class="bar"></div>
+      <div class="ends"><span>0%</span><span>advance chance</span><span>100%</span></div>
+      <div>Faded = 4 or fewer teams</div>
+    </div>
+    <div class="hint">Drag to rotate · scroll to zoom · right-drag to pan</div>
+    <div class="msg" id="msg" style="display:none;"></div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script src="../advData.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- data logic (mirrors the main page) ----------
+  const AWARD_LABELS = { 60: "Inspire 1st (60)", 30: "Inspire 2nd (30)", 15: "Inspire 3rd (15)", 12: "1st place award (12)", 6: "2nd place award (6)", 3: "3rd place award (3)", 0: "No awards (0)" };
+  const AWARD_SORT = { 60: 1, 30: 2, 15: 3, 12: 4, 6: 5, 3: 6, 0: 7 };
+  const PLAYOFF_LABELS = { 40: "1st playoffs (40)", 20: "2nd playoffs (20)", 10: "3rd playoffs (10)", 5: "4th playoffs (5)", 0: "Not top 4 (0)" };
+  const PLAYOFF_SORT = { 40: 1, 20: 2, 10: 3, 5: 4, 0: 5 };
+  const FACTORS = [
+    { id: "award", label: "Awards", full: "Awards" },
+    { id: "playoff", label: "Playoffs", full: "Playoffs placing" },
+    { id: "alliance", label: "Alliances", full: "Alliance seed" },
+    { id: "qual", label: "Quals", full: "Qual rank" },
+  ];
+  const RANGES = { "0-10": [0, 10], "11-20": [11, 20], "21-30": [21, 30], "31-40": [31, 40], "40+": [40, 99999] };
+  const CODE_RANGES = { 0: "0-10", 1: "11-20", 2: "21-30", 3: "31-40", 4: "40+", c: "custom" };
+  const fac = (id) => FACTORS.find((f) => f.id === id);
+
+  // rows: [ei,tc,awPts,plPts,alPts,qPts,qr,advRank,adv,ai,place]
+  const getVal = (fid, r) => (fid === "award" ? r[2] : fid === "playoff" ? r[3] : fid === "alliance" ? r[4] : r[6]);
+  function normalize(fid, val) {
+    if (val == null || val === "") return null;
+    if (fid === "award") return { key: String(val), label: AWARD_LABELS[val] || `${val} award pts`, sort: AWARD_SORT[val] ?? 1000 };
+    if (fid === "playoff") return { key: String(val), label: PLAYOFF_LABELS[val] || `${val} playoff pts`, sort: PLAYOFF_SORT[val] ?? 1000 };
+    if (fid === "alliance") {
+      if (val === 0) return { key: "0", label: "Not selected (0)", sort: 999 };
+      const seed = 21 - val;
+      return { key: String(val), label: `Seed ${seed} (${val})`, sort: seed };
+    }
+    const num = Number(val); if (!Number.isFinite(num) || num <= 0) return null;
+    if (num <= 15) return { key: String(num), label: `#${num}`, sort: num };
+    const bs = Math.floor((num - 1) / 5) * 5 + 1, be = bs + 4;
+    return { key: `${bs}-${be}`, label: `#${bs}-${be}`, sort: bs };
+  }
+  function collapseGroups(groups, fid) {
+    let sorted = [...groups].sort((a, b) => a.sort - b.sort);
+    const mergeMap = new Map(); sorted.forEach((g) => mergeMap.set(g.key, g.key));
+    if (fid === "qual" && sorted.length > 0) {
+      let th = 0, tt = 0, split = sorted.length;
+      for (let i = sorted.length - 1; i >= 0; i--) {
+        const g = sorted[i]; if (g.sort <= 11) break;
+        const nh = th + g.hits, nt = tt + g.total; if (nt === 0) continue;
+        if (nh / nt <= 0.1) { th = nh; tt = nt; split = i; } else break;
+      }
+      if (split < sorted.length) {
+        const kept = sorted.slice(0, split), collapsed = sorted.slice(split);
+        if (collapsed.length) {
+          const first = collapsed[0]; let lb = first.label.replace("#", ""); if (lb.includes("-")) lb = lb.split("-")[0];
+          collapsed.forEach((g) => mergeMap.set(g.key, "collapsed"));
+          kept.push({ key: "collapsed", label: `#${lb}+`, sort: first.sort, total: tt, hits: th });
+          sorted = kept;
+        }
+      }
+    }
+    return { groups: sorted, mergeMap };
+  }
+  // N-way version of the main page's 2-way grid aggregation.
+  function aggregate(rows, threshold, sel, lowData) {
+    const maps = sel.map(() => new Map()), combos = new Map();
+    for (const r of rows) {
+      const ms = sel.map((f) => normalize(f, getVal(f, r)));
+      if (ms.some((m) => !m)) continue;
+      const adv = r[7] !== 9999 && r[7] <= threshold;
+      ms.forEach((m, i) => { let e = maps[i].get(m.key); if (!e) { e = { ...m, total: 0, hits: 0 }; maps[i].set(m.key, e); } e.total++; if (adv) e.hits++; });
+      const ck = ms.map((m) => m.key).join("|||");
+      let c = combos.get(ck); if (!c) { c = { total: 0, hits: 0 }; combos.set(ck, c); } c.total++; if (adv) c.hits++;
+    }
+    const axes = sel.map((f, i) => {
+      let l = [...maps[i].values()]; if (!lowData) l = l.filter((g) => g.total > 4);
+      const c = collapseGroups(l, f);
+      return { id: f, groups: c.groups, mergeMap: c.mergeMap };
+    });
+    const cells = new Map();
+    for (const [ok, v] of combos) {
+      const parts = ok.split("|||");
+      if (parts.some((p, i) => !axes[i].mergeMap.has(p))) continue;
+      const nk = parts.map((p, i) => axes[i].mergeMap.get(p)).join("|||");
+      let c = cells.get(nk); if (!c) { c = { total: 0, hits: 0 }; cells.set(nk, c); } c.total += v.total; c.hits += v.hits;
+    }
+    return { axes, cells };
+  }
+
+  // ---------- state ----------
+  const state = { range: "21-30", minTeams: 21, maxTeams: 30, threshold: 6, sel: ["playoff", "award"], layer: "all" };
+  try {
+    const q = new URLSearchParams(location.search);
+    const r = q.get("r"); if (r) state.range = RANGES[r] || r === "custom" ? r : CODE_RANGES[r] || state.range;
+    const a = q.get("a"); if (a !== null && Number.isFinite(Number(a))) state.threshold = Math.max(1, parseInt(a, 10) || 1);
+    const n = q.get("n"); if (n !== null && Number.isFinite(Number(n))) state.minTeams = Math.max(0, parseInt(n, 10) || 0);
+    const x = q.get("x"); if (x !== null && Number.isFinite(Number(x))) state.maxTeams = Math.max(0, parseInt(x, 10) || 0);
+    const f = (q.get("f") || "").split(".").filter((id) => fac(id)); if (f.length >= 2 && f.length <= 3) state.sel = [...new Set(f)];
+  } catch (e) {}
+
+  function filteredRows() {
+    let min, max;
+    if (state.range === "custom") { min = Math.max(0, state.minTeams | 0); max = Math.max(min, state.maxTeams | 0); }
+    else [min, max] = RANGES[state.range];
+    return window.ADV_DATA.rows.filter((r) => r[1] >= min && r[1] <= max && r[7] !== 9999);
+  }
+
+  // ---------- three.js setup ----------
+  const canvas = $("view");
+  if (!window.THREE) { showMsg("Could not load the 3D library (three.js). Check your internet connection and reload."); return; }
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+  catch (e) { showMsg("WebGL is not available in this browser, so the 3D view can't be shown."); return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 500);
+  const controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true; controls.dampingFactor = 0.12;
+  controls.maxPolarAngle = Math.PI / 2 - 0.02;
+  scene.add(new THREE.AmbientLight(0xffffff, 0.72));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.55); sun.position.set(6, 12, 8); scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.18); fill.position.set(-8, 4, -6); scene.add(fill);
+
+  const world = new THREE.Group(); scene.add(world);
+  const BOX = new THREE.BoxGeometry(1, 1, 1);
+  let cellMeshes = [], homeView = null, shapeSig = "";
+
+  function showMsg(t) { const m = $("msg"); m.textContent = t; m.style.display = t ? "flex" : "none"; }
+
+  function clearWorld() {
+    world.traverse((o) => {
+      if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); }
+      if (o.geometry && o.geometry !== BOX) o.geometry.dispose();
+    });
+    while (world.children.length) world.remove(world.children[0]);
+    cellMeshes = [];
+  }
+
+  function textTexture(text, bold, color) {
+    const fs = 48, pad = 8, c = document.createElement("canvas"), ctx = c.getContext("2d");
+    const font = `${bold ? "bold " : ""}${fs}px Arial, Helvetica, sans-serif`;
+    ctx.font = font;
+    c.width = Math.ceil(ctx.measureText(text).width) + pad * 2; c.height = fs + pad * 2;
+    ctx.font = font; ctx.fillStyle = color || "#333"; ctx.textBaseline = "middle"; ctx.fillText(text, pad, c.height / 2 + 2);
+    const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+    return { tex, aspect: c.width / c.height };
+  }
+  // Billboard label; ax/ay set the anchor (0..1).
+  function spriteLabel(text, h, opts = {}) {
+    const { tex, aspect } = textTexture(text, opts.bold, opts.color);
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    s.scale.set(h * aspect, h, 1); s.center.set(opts.ax ?? 0.5, opts.ay ?? 0.5); s.renderOrder = 5;
+    return s;
+  }
+  // Label lying flat on the floor. along: "x" reads left→right, "z" reads toward the grid (−z).
+  function floorLabel(text, h, along, opts = {}) {
+    const { tex, aspect } = textTexture(text, opts.bold, opts.color);
+    const w = h * aspect;
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+    plane.rotation.x = -Math.PI / 2;
+    const g = new THREE.Group(); g.add(plane); if (along === "z") g.rotation.y = Math.PI / 2;
+    g.userData.w = w;
+    return g;
+  }
+  function lines(points, color) {
+    const geo = new THREE.BufferGeometry().setFromPoints(points.map((p) => new THREE.Vector3(...p)));
+    return new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color }));
+  }
+  function pctColor(pct) { return new THREE.Color().setHSL((Math.max(0, Math.min(100, pct)) * 1.2) / 360, 0.85, 0.55); }
+
+  // ---------- build scene from data ----------
+  function rebuild() {
+    clearWorld(); hideTip();
+    const rows = filteredRows();
+    const evCount = new Set(rows.map((r) => r[0])).size;
+    const lowData = evCount <= 4;
+    $("status").textContent = `Filtered to ${rows.length} teams across ${evCount} events |`;
+    $("lowData").style.display = lowData && rows.length ? "block" : "none";
+
+    const sel = state.sel, is3 = sel.length === 3;
+    $("layerBox").style.display = "none";
+    if (sel.length < 2) { $("caption").textContent = ""; showMsg("Select 2 factors for 3D bars, or 3 factors for a 3-way cube."); return; }
+
+    const A = aggregate(rows, state.threshold, sel, lowData);
+    if (A.axes.some((ax) => !ax.groups.length)) { $("caption").textContent = ""; showMsg("Not enough data for this selection."); return; }
+    showMsg("");
+
+    // Axis assignment: most categories on X; in 3-way mode the fewest go vertical.
+    const order = A.axes.map((ax, i) => i).sort((a, b) => A.axes[b].groups.length - A.axes[a].groups.length);
+    const xi = order[0], zi = order[1], yi = is3 ? order[2] : -1;
+    const X = A.axes[xi], Z = A.axes[zi], Y = is3 ? A.axes[yi] : null;
+    const nx = X.groups.length, nz = Z.groups.length, ny = is3 ? Y.groups.length : 0;
+    const px = (i) => i - (nx - 1) / 2, pz = (j) => j - (nz - 1) / 2;
+    const x0 = px(0) - 0.5, x1 = px(nx - 1) + 0.5, z0 = pz(0) - 0.5, z1 = pz(nz - 1) + 0.5;
+    const H = is3 ? ny : Math.max(3, Math.min(7, Math.max(nx, nz) * 0.45));
+    const cellAt = (i, j, k) => { const keys = []; keys[xi] = X.groups[i].key; keys[zi] = Z.groups[j].key; if (is3) keys[yi] = Y.groups[k].key; return A.cells.get(keys.join("|||")); };
+
+    $("caption").textContent = is3 ? `${fac(Y.id).full} × ${fac(Z.id).full} × ${fac(X.id).full}` : `${fac(Z.id).full} vs ${fac(X.id).full}`;
+    $("legendNote").textContent = is3 ? "Cube size = number of teams" : "Bar height = advance chance";
+
+    // floor + grid
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), new THREE.MeshBasicMaterial({ color: 0xf1f3f5, side: THREE.DoubleSide }));
+    floor.rotation.x = -Math.PI / 2; floor.position.set((x0 + x1) / 2, -0.005, (z0 + z1) / 2); world.add(floor);
+    const gl = [];
+    for (let i = 0; i <= nx; i++) gl.push([x0 + i, 0, z0], [x0 + i, 0, z1]);
+    for (let j = 0; j <= nz; j++) gl.push([x0, 0, z0 + j], [x1, 0, z0 + j]);
+    world.add(lines(gl, 0xd8dce0));
+
+    // cells
+    let maxTotal = 1;
+    if (is3) for (const c of A.cells.values()) maxTotal = Math.max(maxTotal, c.total);
+    for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) for (let k = 0; k < (is3 ? ny : 1); k++) {
+      const c = cellAt(i, j, k); if (!c) continue;
+      const pct = (c.hits / c.total) * 100, low = c.total <= 4;
+      const mat = new THREE.MeshLambertMaterial({ color: pctColor(pct), transparent: low, opacity: low ? 0.45 : 1 });
+      const m = new THREE.Mesh(BOX, mat);
+      if (is3) { const s = 0.22 + 0.62 * Math.cbrt(c.total / maxTotal); m.scale.set(s, s, s); m.position.set(px(i), k + 0.5, pz(j)); }
+      else { const h = Math.max(0.03, (pct / 100) * H); m.scale.set(0.78, h, 0.78); m.position.set(px(i), h / 2, pz(j)); }
+      m.userData = { k, pct, hits: c.hits, total: c.total, parts: [[fac(X.id).full, X.groups[i].label], [fac(Z.id).full, Z.groups[j].label]].concat(is3 ? [[fac(Y.id).full, Y.groups[k].label]] : []) };
+      world.add(m); cellMeshes.push(m);
+    }
+
+    // axis labels
+    const LH = 0.34; let maxWX = 0, maxWZ = 0;
+    X.groups.forEach((g, i) => { const l = floorLabel(g.label, LH, "z"); l.position.set(px(i), 0.01, z1 + 0.25 + l.userData.w / 2); world.add(l); maxWX = Math.max(maxWX, l.userData.w); });
+    Z.groups.forEach((g, j) => { const l = floorLabel(g.label, LH, "x"); l.position.set(x1 + 0.25 + l.userData.w / 2, 0.01, pz(j)); world.add(l); maxWZ = Math.max(maxWZ, l.userData.w); });
+    const tx = floorLabel(fac(X.id).full, 0.5, "x", { bold: true, color: "#111" }); tx.position.set(0, 0.01, z1 + maxWX + 0.9); world.add(tx);
+    const tz = floorLabel(fac(Z.id).full, 0.5, "z", { bold: true, color: "#111" }); tz.position.set(x1 + maxWZ + 0.9, 0.01, 0); world.add(tz);
+
+    if (is3) {
+      Y.groups.forEach((g, k) => { const s = spriteLabel(g.label, LH, { ax: 1 }); s.position.set(x0 - 0.15, k + 0.5, z1 + 0.15); world.add(s); });
+      const ty = spriteLabel(fac(Y.id).full, 0.5, { bold: true, color: "#111", ax: 1, ay: 0 }); ty.position.set(x0 - 0.15, ny + 0.25, z1 + 0.15); world.add(ty);
+      const fr = [];
+      for (let k = 0; k <= ny; k++) fr.push([x0, k, z0], [x1, k, z0], [x0, k, z0], [x0, k, z1]);
+      fr.push([x0, 0, z0], [x0, ny, z0], [x1, 0, z0], [x1, ny, z0], [x0, 0, z1], [x0, ny, z1]);
+      world.add(lines(fr, 0xd8dce0));
+      // layer picker
+      const ls = $("layer"); ls.innerHTML = "";
+      const add = (v, t) => { const o = document.createElement("option"); o.value = v; o.textContent = t; ls.appendChild(o); };
+      add("all", "All"); Y.groups.forEach((g, k) => add(String(k), g.label));
+      if (state.layer !== "all" && Number(state.layer) >= ny) state.layer = "all";
+      ls.value = state.layer; $("layerLabel").textContent = fac(Y.id).label + " layer"; $("layerBox").style.display = "flex";
+      applyLayer();
+    } else {
+      const wl = [];
+      for (const t of [0, 25, 50, 75, 100]) {
+        const y = (t / 100) * H;
+        if (t) wl.push([x0, y, z0], [x1, y, z0], [x0, y, z0], [x0, y, z1]);
+        const s = spriteLabel(t + "%", LH, { ax: 1 }); s.position.set(x0 - 0.15, y, z1 + 0.15); world.add(s);
+      }
+      wl.push([x0, 0, z0], [x0, H, z0], [x1, 0, z0], [x1, H, z0], [x0, 0, z1], [x0, H, z1]);
+      world.add(lines(wl, 0xd8dce0));
+      const ty = spriteLabel("Advance chance", 0.45, { bold: true, color: "#111", ax: 1, ay: 0 }); ty.position.set(x0 - 0.15, H + 0.35, z1 + 0.15); world.add(ty);
+    }
+
+    // camera: only re-frame when the shape of the chart changes
+    const R = Math.max(nx + maxWZ, nz + maxWX, H * 1.4);
+    const target = new THREE.Vector3(maxWZ * 0.35, H * 0.38, maxWX * 0.35);
+    homeView = { target, pos: target.clone().add(new THREE.Vector3(0.5, 0.6, 1.0).normalize().multiplyScalar(R * 1.35 + 2.5)) };
+    const sig = [sel.join("."), nx, nz, ny].join("|");
+    if (sig !== shapeSig) { shapeSig = sig; resetView(); }
+  }
+
+  function applyLayer() {
+    const all = state.layer === "all", k = Number(state.layer);
+    for (const m of cellMeshes) m.visible = all || m.userData.k === k;
+  }
+  function resetView() {
+    if (!homeView) return;
+    camera.position.copy(homeView.pos); controls.target.copy(homeView.target); controls.update();
+  }
+
+  // ---------- hover tooltip ----------
+  const tip = $("tip"), ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+  let hovered = null;
+  function hideTip() { tip.style.display = "none"; if (hovered) { hovered.material.emissive.setHex(0x000000); hovered = null; } }
+  function pick(e) {
+    const r = canvas.getBoundingClientRect();
+    mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(mouse, camera);
+    const hit = ray.intersectObjects(cellMeshes.filter((m) => m.visible), false)[0];
+    if (!hit) return hideTip();
+    if (hovered !== hit.object) { if (hovered) hovered.material.emissive.setHex(0x000000); hovered = hit.object; hovered.material.emissive.setHex(0x2a2a2a); }
+    const d = hovered.userData;
+    tip.textContent = "";
+    const big = document.createElement("b"); big.className = "big"; big.textContent = d.pct.toFixed(1) + "% advance"; tip.appendChild(big);
+    const cnt = document.createElement("div"); cnt.textContent = `${d.hits}/${d.total} teams`; tip.appendChild(cnt);
+    for (const [name, val] of d.parts) { const row = document.createElement("div"); row.style.color = "#cbd5e1"; row.textContent = `${name}: ${val}`; tip.appendChild(row); }
+    tip.style.display = "block";
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    tip.style.left = Math.min(window.innerWidth - tw - 8, e.clientX + 14) + "px";
+    tip.style.top = Math.max(8, e.clientY - th - 10) + "px";
+  }
+  canvas.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" && e.buttons) return hideTip(); pick(e); });
+  canvas.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") pick(e); });
+  canvas.addEventListener("pointerleave", hideTip);
+
+  // ---------- controls ----------
+  function renderPills() {
+    const box = $("pills"); box.innerHTML = "";
+    for (const f of FACTORS) {
+      const d = document.createElement("div"); d.className = "pill" + (state.sel.includes(f.id) ? " on" : ""); d.textContent = f.label;
+      d.onclick = () => {
+        const i = state.sel.indexOf(f.id);
+        if (i >= 0) state.sel.splice(i, 1); else { if (state.sel.length >= 3) state.sel.shift(); state.sel.push(f.id); }
+        state.layer = "all"; renderPills(); rebuild();
+      };
+      box.appendChild(d);
+    }
+  }
+  const intIn = (el, min, key) => el.addEventListener("input", () => { const v = parseInt(el.value, 10); state[key] = Number.isFinite(v) ? Math.max(min, v) : min; rebuild(); });
+  $("range").value = state.range; $("threshold").value = state.threshold; $("minTeams").value = state.minTeams; $("maxTeams").value = state.maxTeams;
+  $("customBox").style.display = state.range === "custom" ? "flex" : "none";
+  $("range").addEventListener("change", (e) => { state.range = e.target.value; $("customBox").style.display = state.range === "custom" ? "flex" : "none"; rebuild(); });
+  intIn($("threshold"), 1, "threshold"); intIn($("minTeams"), 0, "minTeams"); intIn($("maxTeams"), 0, "maxTeams");
+  $("layer").addEventListener("change", (e) => { state.layer = e.target.value; hideTip(); applyLayer(); });
+  $("resetView").addEventListener("click", resetView);
+
+  function resize() {
+    const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", resize);
+
+  renderPills(); resize();
+  if (!window.ADV_DATA) { showMsg("Could not load event data (advData.js)."); return; }
+  rebuild();
+  (function loop() { controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); })();
+})();
+</script>
+</body>
+</html>
