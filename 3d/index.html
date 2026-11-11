@@ -229,7 +229,7 @@
 
   function clearWorld() {
     world.traverse((o) => {
-      if (o.material) { if (o.material.map && !o.material.map._cached) o.material.map.dispose(); o.material.dispose(); }
+      if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); }
       if (o.geometry && o.geometry !== BOX) o.geometry.dispose();
     });
     while (world.children.length) world.remove(world.children[0]);
@@ -268,21 +268,6 @@
   }
   function pctColor(pct) { return new THREE.Color().setHSL((Math.max(0, Math.min(100, pct)) * 1.2) / 360, 0.85, 0.55); }
 
-  // Cube face showing the percentage as text on the percentage colour (3-way mode). Cached per whole percent.
-  const faceCache = new Map();
-  function pctFace(pct) {
-    const p = Math.round(pct); if (faceCache.has(p)) return faceCache.get(p);
-    const c = document.createElement("canvas"); c.width = c.height = 128; const ctx = c.getContext("2d");
-    const col = pctColor(p), R = col.r * 255, G = col.g * 255, B = col.b * 255;
-    ctx.fillStyle = `rgb(${R | 0},${G | 0},${B | 0})`; ctx.fillRect(0, 0, 128, 128);
-    ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = 4; ctx.strokeRect(2, 2, 124, 124);
-    ctx.fillStyle = (R * 299 + G * 587 + B * 114) / 1000 > 140 ? "#000" : "#fff";
-    ctx.font = `bold ${p === 100 ? 44 : 54}px Arial, Helvetica, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(p + "%", 64, 68);
-    const tex = new THREE.CanvasTexture(c); tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); tex._cached = true;
-    faceCache.set(p, tex); return tex;
-  }
-
   // ---------- build scene from data ----------
   function rebuild() {
     clearWorld(); hideTip();
@@ -311,7 +296,7 @@
     const cellAt = (i, j, k) => { const keys = []; keys[xi] = X.groups[i].key; keys[zi] = Z.groups[j].key; if (is3) keys[yi] = Y.groups[k].key; return A.cells.get(keys.join("|||")); };
 
     $("caption").textContent = is3 ? `${fac(Y.id).full} × ${fac(Z.id).full} × ${fac(X.id).full}` : `${fac(Z.id).full} vs ${fac(X.id).full}`;
-    $("legendNote").textContent = is3 ? "Number on each cube = advance chance" : "Bar height = advance chance";
+    $("legendNote").textContent = is3 ? "Cube size = number of teams" : "Bar height = advance chance";
 
     // floor + grid
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), new THREE.MeshBasicMaterial({ color: 0xf1f3f5, side: THREE.DoubleSide }));
@@ -322,12 +307,14 @@
     world.add(lines(gl, 0xd8dce0));
 
     // cells
+    let maxTotal = 1;
+    if (is3) for (const c of A.cells.values()) maxTotal = Math.max(maxTotal, c.total);
     for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) for (let k = 0; k < (is3 ? ny : 1); k++) {
       const c = cellAt(i, j, k); if (!c) continue;
       const pct = (c.hits / c.total) * 100, low = c.total <= 4;
-      const mat = new THREE.MeshLambertMaterial(is3 ? { map: pctFace(pct), transparent: low, opacity: low ? 0.5 : 1 } : { color: pctColor(pct), transparent: low, opacity: low ? 0.45 : 1 });
+      const mat = new THREE.MeshLambertMaterial({ color: pctColor(pct), transparent: low, opacity: low ? 0.45 : 1 });
       const m = new THREE.Mesh(BOX, mat);
-      if (is3) { m.scale.set(0.66, 0.66, 0.66); m.position.set(px(i), k + 0.5, pz(j)); }
+      if (is3) { const s = 0.22 + 0.62 * Math.cbrt(c.total / maxTotal); m.scale.set(s, s, s); m.position.set(px(i), k + 0.5, pz(j)); }
       else { const h = Math.max(0.03, (pct / 100) * H); m.scale.set(0.78, h, 0.78); m.position.set(px(i), h / 2, pz(j)); }
       m.userData = { k, pct, hits: c.hits, total: c.total, parts: [[fac(X.id).full, X.groups[i].label], [fac(Z.id).full, Z.groups[j].label]].concat(is3 ? [[fac(Y.id).full, Y.groups[k].label]] : []) };
       world.add(m); cellMeshes.push(m);
