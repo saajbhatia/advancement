@@ -305,7 +305,7 @@
     const X = A.axes[xi], Y = A.axes[yi], Z = A.axes[zi];
     const nx = X.groups.length, ny = Y.groups.length, nz = Z.groups.length, nq = Q.groups.length;
     const n = Math.ceil(Math.sqrt(nq)), pitch = n + 0.9, LP = 3.2;      // n×n slots per cell, layer spacing
-    const px = (i) => (i - (nx - 1) / 2) * pitch, pz = (j) => (j - (nz - 1) / 2) * pitch, py = (k) => k * LP + 0.5;
+    const px = (i) => (i - (nx - 1) / 2) * pitch, pz = (j) => (j - (nz - 1) / 2) * pitch, ly = (k) => (ny - 1 - k) * LP, py = (k) => ly(k) + 0.5; // best result on the top layer
     const sx = (q) => (q % n) - (n - 1) / 2, sz = (q) => Math.floor(q / n) - (n - 1) / 2;
     const x0 = px(0) - pitch / 2, x1 = px(nx - 1) + pitch / 2, z0 = pz(0) - pitch / 2, z1 = pz(nz - 1) + pitch / 2;
     const idx = A.axes.map((ax) => new Map(ax.groups.map((g, i) => [g.key, i])));
@@ -332,7 +332,7 @@
       const i = idx[xi].get(parts[xi]), k = idx[yi].get(parts[yi]), j = idx[zi].get(parts[zi]), q = idx[qi].get(parts[qi]);
       const pct = (c.hits / c.total) * 100, low = c.total <= 4, sc = low ? 0.62 : 0.9;
       const m = new THREE.Mesh(BOX, new THREE.MeshLambertMaterial({ map: boxFace(pct, Q.groups[q].label) }));
-      m.scale.set(sc, sc, sc); m.position.set(px(i) + sx(q), k * LP + sc / 2, pz(j) + sz(q));
+      m.scale.set(sc, sc, sc); m.position.set(px(i) + sx(q), ly(k) + sc / 2, pz(j) + sz(q));
       m.userData = { k, pct, hits: c.hits, total: c.total, parts: [[fac(Y.id).full, Y.groups[k].label], [fac(X.id).full, X.groups[i].label], [fac(Z.id).full, Z.groups[j].label], [fac(Q.id).full, Q.groups[q].label]] };
       world.add(m); cellMeshes.push(m);
     }
