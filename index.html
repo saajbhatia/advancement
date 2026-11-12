@@ -105,6 +105,9 @@
         <div style="max-width:100%;overflow-x:auto;display:flex;justify-content:center;">
           {{ gridTableEl }}
         </div>
+        <div style="display:flex;justify-content:center;margin-top:14px;">
+          <button onClick="{{ on3DGrid }}" class="actionbtn" style="background:#fff;color:#6d28d9;border:1px solid #6d28d9;font-weight:700;">{{ grid3dLabel }}</button>
+        </div>
       </sc-if>
       <sc-if value="{{ gridNeedsTwo }}" hint-placeholder-val="{{ false }}">
         <p style="color:#666;text-align:center;">Select exactly 2 factors for the 2-way table.</p>
@@ -130,6 +133,7 @@
               <input class="num" type="number" value="{{ it.value }}" min="0" step="{{ it.step }}" onChange="{{ it.onChange }}" onBlur="{{ it.onBlur }}" style="width:62px;padding:6px 8px;font-size:13px;text-align:center;border:1px solid {{ it.border }};border-radius:6px;background:{{ it.bg }};font-weight:bold;color:#111;" />
             </div>
           </sc-for>
+          {{ ec.gridEl }}
           </sc-if>
         </div>
       </sc-for>
@@ -162,6 +166,9 @@
         <div style="font-weight:600;margin-bottom:6px;text-align:center;">{{ simGridCaption }}</div>
         <div style="max-width:100%;overflow-x:auto;display:flex;justify-content:center;">
           {{ simGridTableEl }}
+        </div>
+        <div style="display:flex;justify-content:center;margin-top:14px;">
+          <button onClick="{{ on3DGrid }}" class="actionbtn" style="background:#fff;color:#6d28d9;border:1px solid #6d28d9;font-weight:700;">{{ grid3dLabel }}</button>
         </div>
       </sc-if>
       <sc-if value="{{ simGridNeedsTwo }}" hint-placeholder-val="{{ false }}">
@@ -205,7 +212,7 @@ class Component extends DCLogic {
     { id: "qual", label: "Quals", full: "Qual rank" },
   ];
 
-  DEFAULT_PV = { award: { i1: 60, i2: 30, i3: 15, a1: 12, a2: 6, a3: 3 }, playoff: { p1: 40, p2: 20, p3: 10, p4: 5 }, allianceTop: 20, qualW: 1 };
+  DEFAULT_PV = { award: { i1: 60, i2: 30, i3: 15, t1: 12, t2: 6, t3: 3, a1: 12, a2: 6, a3: 3 }, playoff: { p1: 40, p2: 20, p3: 10, p4: 5 }, allianceTop: 20, qualW: 1 };
   RANGE_CODES = { "0-10": "0", "11-20": "1", "21-30": "2", "31-40": "3", "40+": "4", custom: "c" };
   CODE_RANGES = { 0: "0-10", 1: "11-20", 2: "21-30", 3: "31-40", 4: "40+", c: "custom" };
 
@@ -216,6 +223,7 @@ class Component extends DCLogic {
     modalOpen: false,
     isMobile: false,
     factorsOpen: false,
+    grid3d: false,
     editorCardsOpen: {},
     drafts: {},
     pv: JSON.parse(JSON.stringify(this.DEFAULT_PV)),
@@ -435,18 +443,31 @@ class Component extends DCLogic {
     if (ai >= 0 && place >= 1 && place <= 3) {
       const insp = [60, 30, 15], judged = [12, 6, 3];
       const def = ai === 0 ? insp[place - 1] : judged[place - 1];
-      const eff = ai === 0 ? [pv.award.i1, pv.award.i2, pv.award.i3][place - 1] : [pv.award.a1, pv.award.a2, pv.award.a3][place - 1];
+      // ai indexes ADV_DATA.awardNames: 0 = Inspire, 1 = Think, everything else shares the general award values.
+      const eff = ai === 0 ? [pv.award.i1, pv.award.i2, pv.award.i3][place - 1] : ai === 1 ? [pv.award.t1, pv.award.t2, pv.award.t3][place - 1] : [pv.award.a1, pv.award.a2, pv.award.a3][place - 1];
       aw = r[2] * (eff / def);
     }
     const pl = ({ 40: pv.playoff.p1, 20: pv.playoff.p2, 10: pv.playoff.p3, 5: pv.playoff.p4, 0: 0 })[r[3]] ?? 0;
     const al = r[4] > 0 ? Math.max(0, pv.allianceTop - ((21 - r[4]) - 1)) : 0;
     return aw + pl + al + r[5] * pv.qualW;
   }
+  // Grouping for the point-system comparison tables: like normalize(), but Think gets its own award rows
+  // (it has its own point values in the editor) and the remaining judged awards are labelled "Other".
+  simMeta(fid, r) {
+    const m = this.normalize(fid, this.getVal(fid, r));
+    if (fid !== "award" || !m) return m;
+    const place = r[10], ord = ["1st", "2nd"][place - 1]; // Think 3rd is too rare for its own row
+    if (r[9] === 1 && ord) return { key: "think" + place, label: `Think ${ord} (${[12, 6, 3][place - 1]})`, sort: 3 + place / 10 };
+    const other = { 12: "Other 1st place (12)", 6: "Other 2nd place (6)", 3: "Other 3rd place (3)" }[m.key];
+    return other ? { ...m, label: other } : m;
+  }
   computeSim(rows, threshold, pv, lowData) {
     // group rows by event within this filtered set
     const byEv = new Map();
     for (const r of rows) { if (!byEv.has(r[0])) byEv.set(r[0], []); byEv.get(r[0]).push(r); }
     const facAgg = {}; this.FACTORS.forEach((f) => (facAgg[f.id] = new Map()));
+    // Think 1st and 2nd rows always show, even with few or no teams in this range.
+    [1, 2].forEach((pl) => facAgg.award.set("think" + pl, { key: "think" + pl, label: `Think ${["1st", "2nd", "3rd"][pl - 1]} (${[12, 6, 3][pl - 1]})`, sort: 3 + pl / 10, total: 0, hits: 0, off: 0, nw: 0 }));
     let spots = 0, gained = 0;
     for (const teams of byEv.values()) {
       const N = teams.filter((r) => this.isAdvancing(r, threshold)).length; spots += N;
@@ -456,14 +477,14 @@ class Component extends DCLogic {
         const off = this.isAdvancing(r, threshold) ? 1 : 0, nw = newAdv.has(r) ? 1 : 0;
         if (nw && !off) gained++;
         for (const f of this.FACTORS) {
-          const m = this.normalize(f.id, this.getVal(f.id, r)); if (!m) continue;
+          const m = this.simMeta(f.id, r); if (!m) continue;
           const g = facAgg[f.id]; if (!g.has(m.key)) g.set(m.key, { ...m, total: 0, hits: 0, off: 0, nw: 0 });
           const e = g.get(m.key); e.total++; e.off += off; e.nw += nw; e.hits += off;
         }
       }
     }
     const cards = this.FACTORS.map((f) => {
-      let arr = [...facAgg[f.id].values()]; if (!lowData) arr = arr.filter((g) => g.total > 3);
+      let arr = [...facAgg[f.id].values()]; if (!lowData) arr = arr.filter((g) => g.total > 3 || String(g.key).startsWith("think"));
       const collapsed = this.collapseGroups(arr, f.id).groups;
       // collapseGroups loses off/nw on merged tail (it builds a new obj from hits/total). Recompute % from hits as official already; need nw too.
       return { id: f.id, title: f.label, groups: collapsed, raw: arr };
@@ -489,14 +510,28 @@ class Component extends DCLogic {
   onCompare = () => { this.trackEvent("nav_to_compare", { source: this.isAdjustRoute() ? "adjust_header_button" : "main_header_button" }); window.open(this.routeURL("compare/").toString(), "_self"); };
   onAdjust = () => { this.trackEvent("adjust_advancement_system", { source: this.isAdjustRoute() ? "adjust_header_button" : "main_header_button", target_view: "point_system" }); window.open(this.shareURL("adjust/", { tab: "sim" }).toString(), "_self"); };
   on3D = () => { this.trackEvent("nav_to_3d", { source: this.isAdjustRoute() ? "adjust_header_button" : "main_header_button" }); window.open(this.routeURL("3d/index.html").toString(), "_self"); };
+  // Swap the 2-way table for an embedded 3D chart (the 3D page in chart-only mode), kept in sync by message.
+  on3DGrid = () => {
+    const on = !this.state.grid3d;
+    if (on) { const url = this.routeURL("3d/index.html"); url.searchParams.set("embed", "1"); this._g3dSrc = url.toString(); }
+    this.setState((s) => ({ grid3d: on, grid: on ? s.grid : s.grid.slice(-2) })); // the flat table only takes 2 factors
+    this.trackEvent("view_grid_in_3d", { enabled: on, factors: this.state.grid.join("."), custom_points: this.state.tab === "sim" && this.serializePV(this.state.pv) !== "" });
+  };
+  sendG3d = () => {
+    const st = this.state, w = this._g3d && this._g3d.contentWindow; if (!w) return;
+    w.postMessage({ type: "adv3d", f: st.grid, range: st.range, minTeams: st.minTeams, maxTeams: st.maxTeams, threshold: st.threshold, p: st.tab === "sim" ? this.serializePV(st.pv) : "" }, "*");
+  };
+  grid3dEl() {
+    return React.createElement("iframe", { key: "g3d", ref: (el) => { this._g3d = el; }, src: this._g3dSrc, title: "3D view of the 2-way table", onLoad: this.sendG3d, style: { flex: "1 1 auto", width: "100%", height: "min(72vh, 660px)", minHeight: 380, border: "1px solid #e0e0e0", borderRadius: 8, background: "#fff", display: "block" } });
+  }
   trackEvent(eventName, params = {}) { if (typeof window.gtag === "function") window.gtag("event", eventName, { event_category: "engagement", page_path: window.location.pathname, app_view: this.state.tab, ...params }); }
   // ---- shareable-link state (advancement / point system) ----
   // Compact key -> [category, subkey?] map for point values in the shareable link.
-  PV_KEYS = [["i1", "award", "i1"], ["i2", "award", "i2"], ["i3", "award", "i3"], ["a1", "award", "a1"], ["a2", "award", "a2"], ["a3", "award", "a3"], ["p1", "playoff", "p1"], ["p2", "playoff", "p2"], ["p3", "playoff", "p3"], ["p4", "playoff", "p4"], ["at", "allianceTop"], ["qw", "qualW"]];
+  PV_KEYS = [["i1", "award", "i1"], ["i2", "award", "i2"], ["i3", "award", "i3"], ["t1", "award", "t1"], ["t2", "award", "t2"], ["t3", "award", "t3"], ["a1", "award", "a1"], ["a2", "award", "a2"], ["a3", "award", "a3"], ["p1", "playoff", "p1"], ["p2", "playoff", "p2"], ["p3", "playoff", "p3"], ["p4", "playoff", "p4"], ["at", "allianceTop"], ["qw", "qualW"]];
   clonePV(pv = this.DEFAULT_PV) { return JSON.parse(JSON.stringify(pv)); }
-  serializePV(pv) { const d = this.DEFAULT_PV; const out = []; for (const [k, c, sub] of this.PV_KEYS) { const val = sub ? pv[c][sub] : pv[c]; const def = sub ? d[c][sub] : d[c]; if (val !== def) out.push(k + "-" + val); } return out.join("_"); }
-  parseLegacyPV(str) { const n = String(str).split(",").map(Number); if (n.length !== 12 || n.some((x) => !Number.isFinite(x))) return null; return { award: { i1: n[0], i2: n[1], i3: n[2], a1: n[3], a2: n[4], a3: n[5] }, playoff: { p1: n[6], p2: n[7], p3: n[8], p4: n[9] }, allianceTop: n[10], qualW: n[11] }; }
-  parsePV(str) { if (String(str).includes(",")) return this.parseLegacyPV(str); const pv = this.clonePV(); const idx = {}; let found = false; for (const t of this.PV_KEYS) idx[t[0]] = t; for (const part of String(str).split("_")) { const i = part.indexOf("-"); if (i < 0) continue; const t = idx[part.slice(0, i)], v = Number(part.slice(i + 1)); if (!t || !Number.isFinite(v)) continue; found = true; if (t[2]) pv[t[1]][t[2]] = v; else pv[t[1]] = v; } return found ? pv : null; }
+  serializePV(pv) { const d = this.DEFAULT_PV; const out = []; for (const [k, c, sub] of this.PV_KEYS) { const val = sub ? pv[c][sub] : pv[c]; const def = /^t[123]$/.test(k) ? pv.award["a" + k[1]] : sub ? d[c][sub] : d[c]; if (val !== def) out.push(k + "-" + val); } return out.join("_"); }
+  parseLegacyPV(str) { const n = String(str).split(",").map(Number); if (n.length !== 12 || n.some((x) => !Number.isFinite(x))) return null; return { award: { i1: n[0], i2: n[1], i3: n[2], t1: n[3], t2: n[4], t3: n[5], a1: n[3], a2: n[4], a3: n[5] }, playoff: { p1: n[6], p2: n[7], p3: n[8], p4: n[9] }, allianceTop: n[10], qualW: n[11] }; }
+  parsePV(str) { if (String(str).includes(",")) return this.parseLegacyPV(str); const pv = this.clonePV(); const idx = {}; const seen = {}; let found = false; for (const t of this.PV_KEYS) idx[t[0]] = t; for (const part of String(str).split("_")) { const i = part.indexOf("-"); if (i < 0) continue; const t = idx[part.slice(0, i)], v = Number(part.slice(i + 1)); if (!t || !Number.isFinite(v)) continue; found = true; seen[t[0]] = true; if (t[2]) pv[t[1]][t[2]] = v; else pv[t[1]] = v; } for (const n of [1, 2, 3]) if (!seen["t" + n]) pv.award["t" + n] = pv.award["a" + n]; return found ? pv : null; }
   parseRange(raw) { if (!raw) return null; return this.RANGE_CODES[raw] ? raw : this.CODE_RANGES[raw] || null; }
   shareURL(path, ov = {}) { const st = { ...this.state, ...ov }; const url = path ? this.routeURL(path) : new URL(window.location.href); const sp = url.searchParams; ["v", "view", "p", "pts", "r", "a", "n", "mn", "x", "mx"].forEach((k) => sp.delete(k)); if (st.tab === "sim" && !this.isAdjustRoute(url)) sp.set("v", "p"); const pts = this.serializePV(st.pv); if (pts) sp.set("p", pts); if (st.range !== "21-30") sp.set("r", this.RANGE_CODES[st.range] || st.range); if (st.threshold !== 6) sp.set("a", String(st.threshold)); if (st.range === "custom") { if (st.minTeams !== 21) sp.set("n", String(st.minTeams)); if (st.maxTeams !== 30) sp.set("x", String(st.maxTeams)); } return url; }
   // Only writes params that differ from defaults, to keep the link short.
@@ -510,7 +545,7 @@ class Component extends DCLogic {
   setThreshold = (e) => this.setThresholdValue(Math.max(1, parseInt(e.target.value, 10) || 1));
   setMin = (e) => this.setMinValue(Math.max(0, parseInt(e.target.value, 10) || 0));
   setMax = (e) => this.setMaxValue(Math.max(0, parseInt(e.target.value, 10) || 0));
-  toggleGrid = (fid) => { const selected = !this.state.grid.includes(fid); this.trackEvent("toggle_grid_axis", { factor_id: fid, selected }); this.setState((s) => { let g = [...s.grid]; const i = g.indexOf(fid); if (i >= 0) g.splice(i, 1); else { if (g.length >= 2) g.shift(); g.push(fid); } return { grid: g }; }); };
+  toggleGrid = (fid) => { const selected = !this.state.grid.includes(fid); this.trackEvent("toggle_grid_axis", { factor_id: fid, selected }); this.setState((s) => { let g = [...s.grid]; const i = g.indexOf(fid); if (i >= 0) g.splice(i, 1); else { if (g.length >= (s.grid3d ? 4 : 2)) g.shift(); g.push(fid); } return { grid: g }; }); };
   toggleEditorCard = (id) => { const expanded = !this.state.editorCardsOpen[id]; this.trackEvent("toggle_point_editor_card", { card_id: id, expanded, is_mobile: this.state.isMobile }); this.setState((st) => ({ editorCardsOpen: { ...st.editorCardsOpen, [id]: expanded } })); };
   reset = () => { const hadChanges = this.serializePV(this.state.pv) !== ""; const pv = this.clonePV(); this.setState({ pv }); this.syncURL({ pv }); this.trackEvent("reset_point_values", { had_changes: hadChanges }); };
   setPV = (cat, key, val) => { const v = Math.max(0, parseFloat(val) || 0); const pv = this.clonePV(this.state.pv); if (cat === "allianceTop") pv.allianceTop = v; else if (cat === "qualW") pv.qualW = v; else pv[cat][key] = v; const def = cat === "allianceTop" ? this.DEFAULT_PV.allianceTop : cat === "qualW" ? this.DEFAULT_PV.qualW : this.DEFAULT_PV[cat][key]; this.setState({ pv }); this.syncURL({ pv }); this.trackEvent("change_point_value", { point_category: cat, point_key: key, point_value: v, is_default: v === def }); };
@@ -521,8 +556,9 @@ class Component extends DCLogic {
     const thresholdH = this.numH("threshold", s.threshold, (n) => this.setThresholdValue(Math.max(1, Math.floor(n))), () => this.setThresholdValue(1));
     const minH = this.numH("minTeams", s.minTeams, (n) => this.setMinValue(Math.max(0, Math.floor(n))), () => this.setMinValue(0));
     const maxH = this.numH("maxTeams", s.maxTeams, (n) => this.setMaxValue(Math.max(0, Math.floor(n))), () => this.setMaxValue(0));
-    const common = { loading: !s.loaded, ready: s.loaded, isOdds: s.loaded && s.tab === "odds", isSim: s.loaded && s.tab === "sim", tabs: [tabPill("odds", "Odds"), tabPill("sim", "Point system")], range: s.range, thresholdH, isCustom: s.range === "custom", minH, maxH, onRange: this.setRange, onCompare: this.onCompare, onReset: this.reset, modalOpen: s.modalOpen, onLearnMore: this.openModal, onCloseModal: this.closeModal, stop: (e) => e.stopPropagation(), onAdjust: this.onAdjust, on3D: this.on3D, adjustBg: s.tab === "sim" ? "#1d4ed8" : "#2563eb", adjustColor: "#fff", adjustBorder: s.tab === "sim" ? "#1d4ed8" : "#2563eb" };
+    const common = { loading: !s.loaded, ready: s.loaded, isOdds: s.loaded && s.tab === "odds", isSim: s.loaded && s.tab === "sim", tabs: [tabPill("odds", "Odds"), tabPill("sim", "Point system")], range: s.range, thresholdH, isCustom: s.range === "custom", minH, maxH, onRange: this.setRange, onCompare: this.onCompare, onReset: this.reset, modalOpen: s.modalOpen, onLearnMore: this.openModal, onCloseModal: this.closeModal, stop: (e) => e.stopPropagation(), onAdjust: this.onAdjust, on3D: this.on3D, on3DGrid: this.on3DGrid, grid3dLabel: s.grid3d ? "Back to table" : "View this table in 3D", adjustBg: s.tab === "sim" ? "#1d4ed8" : "#2563eb", adjustColor: "#fff", adjustBorder: s.tab === "sim" ? "#1d4ed8" : "#2563eb" };
 
+    if (s.grid3d) setTimeout(this.sendG3d, 0); // keep the embedded chart in step with the controls
     if (!s.loaded) return { ...common, gridToggles: [], factorCards: [], gridCols: [], gridRows: [], editorCards: [], compCards: [] };
 
     const rows = this.filtered();
@@ -547,7 +583,8 @@ class Component extends DCLogic {
         });
         return { tableEl: this.factorTable(f.full, tableRows) };
       });
-      if (s.grid.length === 2) {
+      if (s.grid3d && s.grid.length >= 2) { gridReady = true; gridTableEl = this.grid3dEl(); } // 3D takes 2 to 4 factors and shows its own title
+      else if (s.grid.length === 2) {
         const G = this.buildGrid(rows, s.threshold, s.grid, lowData);
         if (G.ok) {
           gridReady = true; gridCaption = G.caption; gridCols = G.xl.map((x) => x.label);
@@ -562,8 +599,22 @@ class Component extends DCLogic {
     if (s.tab === "sim") {
       const pv = s.pv, d = this.DEFAULT_PV;
       const inp = (cat, key, label, val, def, step) => { const h = this.numH("pv:" + cat + ":" + key, val, (n) => this.setPV(cat, key, n), () => this.setPV(cat, key, 0)); return { label, value: h.value, onChange: h.onChange, onBlur: h.onBlur, step: step || 1, border: val !== def ? "#2563eb" : "#ccc", bg: val !== def ? "#eff5ff" : "#fff" }; };
+      // Awards are a 3×3 grid (award type × placement) so the card stays as short as the others.
+      const awardGrid = () => {
+        const e = React.createElement, places = ["1st", "2nd", "3rd"];
+        const head = (t) => e("span", { key: "h" + t, style: { fontSize: 12, fontWeight: 600, color: "#666", textAlign: "center" } }, t);
+        const cells = [e("span", { key: "h0" }), ...places.map(head)];
+        for (const [label, k] of [["Inspire", "i"], ["Think", "t"], ["Other awards", "a"]]) {
+          cells.push(e("span", { key: k, style: { fontSize: 13, color: "#333" } }, label));
+          places.forEach((pl, n) => {
+            const key = k + (n + 1), it = inp("award", key, label, pv.award[key], d.award[key]);
+            cells.push(e("input", { key, className: "num", type: "number", min: 0, step: 1, value: it.value, onChange: it.onChange, onBlur: it.onBlur, "aria-label": `${label} ${pl}`, style: { width: "100%", minWidth: 0, padding: "6px 2px", fontSize: 13, textAlign: "center", border: `1px solid ${it.border}`, borderRadius: 6, background: it.bg, fontWeight: "bold", color: "#111" } }));
+          });
+        }
+        return e("div", { style: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) repeat(3, 50px)", gap: 6, alignItems: "center", marginTop: 6 } }, ...cells);
+      };
       const editorBase = [
-        { id: "award", title: "Inspire & awards", help: "Points for winning an award (Inspire is the top award; all other judged awards share the same value). 2nd place earns the 2nd value, 3rd the 3rd.", items: [["i1", "Inspire 1st"], ["i2", "Inspire 2nd"], ["i3", "Inspire 3rd"], ["a1", "Award 1st"], ["a2", "Award 2nd"], ["a3", "Award 3rd"]].map(([k, l]) => inp("award", k, l, pv.award[k], d.award[k])) },
+        { id: "award", title: "Inspire & awards", help: "Points for winning an award. Inspire is the top award and Think can be set on its own; all other judged awards share the same value. 2nd place earns the 2nd value, 3rd the 3rd.", items: [], gridEl: awardGrid() },
         { id: "playoff", title: "Playoffs", help: "Points for how far you go in the elimination bracket. Raise these to reward winning matches on the field.", items: [["p1", "Winner"], ["p2", "Finalist"], ["p3", "3rd place"], ["p4", "4th place"]].map(([k, l]) => inp("playoff", k, l, pv.playoff[k], d.playoff[k])) },
         { id: "alliance", title: "Alliance seed", help: "Points for being picked into an alliance. Seed 1 earns this value; each lower seed earns 1 point less. Raise to reward alliance captains and early picks.", items: [inp("allianceTop", "allianceTop", "Seed 1 value", pv.allianceTop, d.allianceTop)] },
         { id: "qual", title: "Qual rank", help: "Multiplies each team's qualification-match points. 1× = official, 0× ignores quals entirely, 2× makes qual ranking count twice as much.", items: [inp("qualW", "qualW", "Qual weight ×", pv.qualW, d.qualW, 0.25)] },
@@ -571,11 +622,12 @@ class Component extends DCLogic {
       editorCards = editorBase.map((c) => {
         const open = !!s.editorCardsOpen[c.id];
         const expanded = !(s.isMobile && !open);
-        return { ...c, expanded, chevron: s.isMobile ? (open ? "▴" : "▾") : "", cursor: s.isMobile ? "pointer" : "default", onToggle: () => this.toggleEditorCard(c.id) };
+        return { gridEl: null, ...c, expanded, chevron: s.isMobile ? (open ? "▴" : "▾") : "", cursor: s.isMobile ? "pointer" : "default", onToggle: () => this.toggleEditorCard(c.id) };
       });
       const sim = this.computeSim(rows, s.threshold, pv, lowData);
       compCards = sim.cards.map((card) => {
         const tableRows = this.collapsePair(card.raw, card.id).map((g) => {
+          if (!g.total) return { label: g.label, offText: "–", newText: "–", offBg: "#f9f9f9", offFg: "#666", newBg: "#f9f9f9", newFg: "#666", dText: "", dColor: "#999" };
           const off = g.total ? (g.off / g.total) * 100 : 0, nw = g.total ? (g.nw / g.total) * 100 : 0, dlt = nw - off;
           const co = this.colorForPct(off), cn = this.colorForPct(nw);
           return { label: g.label, offText: off.toFixed(0) + "%", newText: nw.toFixed(0) + "%", offBg: co.bg, offFg: co.fg, newBg: cn.bg, newFg: cn.fg, dText: (dlt > 0 ? "+" : "") + dlt.toFixed(0), dColor: dlt > 0.5 ? "#15803d" : dlt < -0.5 ? "#b91c1c" : "#999" };
@@ -583,7 +635,8 @@ class Component extends DCLogic {
         return { tableEl: this.comparisonTable(card.title, tableRows) };
       });
       // 2-way table under the custom point system
-      if (s.grid.length === 2) {
+      if (s.grid3d && s.grid.length >= 2) { simGridReady = true; simGridTableEl = this.grid3dEl(); }
+      else if (s.grid.length === 2) {
         const advFn0 = this.newAdvSet(rows, s.threshold, pv);
         const G = this.buildGrid(rows, s.threshold, s.grid, lowData, (r) => advFn0.has(r));
         if (G.ok) {

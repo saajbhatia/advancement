@@ -6,7 +6,7 @@
 <meta name="description" content="3D view of FTC advancement odds: explore how awards, playoffs, alliance seed and qual rank combine." />
 <title>Advancement odds for FTC – 3D & 4D</title>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-4T577GC8SB"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-4T577GC8SB');</script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-4T577GC8SB',{send_page_view:!/[?&]embed=1/.test(location.search)});</script>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -30,6 +30,14 @@
   .pill.on { color: #111; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
   .pill:focus-visible, .field select:focus-visible, .field input:focus-visible, .resetbtn:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
   .status { margin: 10px 2px 0; color: #555; font-size: 13px; }
+  /* Embedded inside the tables pages: the host page owns the filters, so only the chart and its own pickers show. */
+  body.embed { background: #fff; }
+  body.embed .top, body.embed .status, body.embed .warn, body.embed .host { display: none !important; }
+  body.embed .wrap { max-width: none; padding: 0; height: 100vh; display: flex; flex-direction: column; }
+  body.embed .toolbar { border: 0; border-bottom: 1px solid #e0e0e0; border-radius: 0; box-shadow: none; padding: 8px 12px; }
+  body.embed .stage { flex: 1 1 auto; min-height: 0; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  body.embed .stage #view { height: 100%; min-height: 0; }
+  .linkbtn { padding: 0; border: 0; background: none; font: inherit; color: #1d4ed8; text-decoration: underline; cursor: pointer; }
   @media (max-width: 640px) {
     .wrap { padding: 16px; }
     h1 { font-size: 1.25rem; }
@@ -64,7 +72,7 @@
   </div>
 
   <div class="toolbar">
-    <div class="field">
+    <div class="field host">
       <label for="range">Teams at event</label>
       <select id="range">
         <option value="0-10">0-10</option>
@@ -75,15 +83,15 @@
         <option value="custom">Custom</option>
       </select>
     </div>
-    <div class="field">
+    <div class="field host">
       <label for="threshold">Advancing</label>
       <input id="threshold" class="num" type="number" min="1" value="6" />
     </div>
-    <div class="pair" id="customBox" style="display:none;">
+    <div class="pair host" id="customBox" style="display:none;">
       <div class="field"><label for="minTeams">Min</label><input id="minTeams" class="num" type="number" min="0" value="21" /></div>
       <div class="field"><label for="maxTeams">Max</label><input id="maxTeams" class="num" type="number" min="0" value="30" /></div>
     </div>
-    <div class="field wide">
+    <div class="field wide host">
       <span class="lbl" id="pillsLbl">Factors <span class="hint">· pick 2 to 4</span></span>
       <div class="pills" id="pills" role="group" aria-labelledby="pillsLbl"></div>
     </div>
@@ -97,7 +105,7 @@
     </div>
   </div>
 
-  <div class="status"><span id="status"></span> · Percentages are based on historical events.</div>
+  <div class="status"><span id="status"></span> · Percentages are based on historical events.<span id="pvNote" style="display:none;"> · <strong>Using your custom point system.</strong> <button type="button" id="pvOff" class="linkbtn">Show official instead</button></span></div>
   <div class="warn" id="lowData" style="display:none;">Warning: Low data, percentages could be inaccurate</div>
 
   <div class="stage">
@@ -116,8 +124,10 @@
 (function () {
   "use strict";
   const $ = (id) => document.getElementById(id);
+  const EMBED = /[?&]embed=1/.test(location.search);
+  if (EMBED) document.body.classList.add("embed");
   // Google Analytics events, same shape as the main page.
-  function track(name, params) { if (typeof window.gtag === "function") window.gtag("event", name, Object.assign({ event_category: "engagement", page_path: window.location.pathname, app_view: viewName() }, params || {})); }
+  function track(name, params) { if (typeof window.gtag === "function") window.gtag("event", name, Object.assign({ event_category: "engagement", page_path: window.location.pathname, app_view: viewName(), embedded: EMBED }, params || {})); }
   function viewName() { try { return state.sel.length === 4 ? "4d" : "3d"; } catch (e) { return "3d"; } }
 
   // ---------- data logic (mirrors the main page) ----------
@@ -139,17 +149,35 @@
   const getVal = (fid, r) => (fid === "award" ? r[2] : fid === "playoff" ? r[3] : fid === "alliance" ? r[4] : r[6]);
   function normalize(fid, val) {
     if (val == null || val === "") return null;
-    if (fid === "award") return { key: String(val), label: AWARD_LABELS[val] || `${val} award pts`, sort: AWARD_SORT[val] ?? 1000 };
-    if (fid === "playoff") return { key: String(val), label: PLAYOFF_LABELS[val] || `${val} playoff pts`, sort: PLAYOFF_SORT[val] ?? 1000 };
+    if (fid === "award") return { key: String(val), label: customLabel(fid, val) || AWARD_LABELS[val] || `${val} award pts`, sort: AWARD_SORT[val] ?? 1000 };
+    if (fid === "playoff") return { key: String(val), label: customLabel(fid, val) || PLAYOFF_LABELS[val] || `${val} playoff pts`, sort: PLAYOFF_SORT[val] ?? 1000 };
     if (fid === "alliance") {
       if (val === 0) return { key: "0", label: "Not selected (0)", sort: 999 };
       const seed = 21 - val;
-      return { key: String(val), label: `Seed ${seed} (${val})`, sort: seed };
+      return { key: String(val), label: customLabel(fid, val) || `Seed ${seed} (${val})`, sort: seed };
     }
     const num = Number(val); if (!Number.isFinite(num) || num <= 0) return null;
     if (num <= 15) return { key: String(num), label: `#${num}`, sort: num };
     const bs = Math.floor((num - 1) / 5) * 5 + 1, be = bs + 4;
     return { key: `${bs}-${be}`, label: `#${bs}-${be}`, sort: bs };
+  }
+  // With a custom point system, the number in brackets is the user's value instead of the official one.
+  function customLabel(fid, val) {
+    let pv = null; try { pv = state.pv; } catch (e) {}
+    if (!pv) return null;
+    const n = (x) => String(Math.round(x * 100) / 100);
+    if (fid === "award") {
+      const m = { 60: ["Inspire 1st", "i1"], 30: ["Inspire 2nd", "i2"], 15: ["Inspire 3rd", "i3"], 12: ["1st place award", "a1"], 6: ["2nd place award", "a2"], 3: ["3rd place award", "a3"] }[val];
+      if (!m) return null;
+      const v = pv.award[m[1]], t = m[1][0] === "a" ? pv.award["t" + m[1][1]] : v;
+      return `${m[0]} (${n(v)}${t !== v ? ", Think " + n(t) : ""})`;
+    }
+    if (fid === "playoff") {
+      const m = { 40: ["1st playoffs", "p1"], 20: ["2nd playoffs", "p2"], 10: ["3rd playoffs", "p3"], 5: ["4th playoffs", "p4"] }[val];
+      return m ? `${m[0]} (${n(pv.playoff[m[1]])})` : null;
+    }
+    if (fid === "alliance") { const seed = 21 - val; return `Seed ${seed} (${n(Math.max(0, pv.allianceTop - (seed - 1)))})`; }
+    return null;
   }
   function collapseGroups(groups, fid) {
     let sorted = [...groups].sort((a, b) => a.sort - b.sort);
@@ -174,12 +202,12 @@
     return { groups: sorted, mergeMap };
   }
   // N-way version of the main page's 2-way grid aggregation.
-  function aggregate(rows, threshold, sel, lowData) {
+  function aggregate(rows, threshold, sel, lowData, advFn) {
     const maps = sel.map(() => new Map()), combos = new Map();
     for (const r of rows) {
       const ms = sel.map((f) => normalize(f, getVal(f, r)));
       if (ms.some((m) => !m)) continue;
-      const adv = r[7] !== 9999 && r[7] <= threshold;
+      const adv = advFn ? advFn(r) : r[7] !== 9999 && r[7] <= threshold;
       ms.forEach((m, i) => { let e = maps[i].get(m.key); if (!e) { e = { ...m, total: 0, hits: 0 }; maps[i].set(m.key, e); } e.total++; if (adv) e.hits++; });
       const ck = ms.map((m) => m.key).join("|||");
       let c = combos.get(ck); if (!c) { c = { total: 0, hits: 0 }; combos.set(ck, c); } c.total++; if (adv) c.hits++;
@@ -199,8 +227,47 @@
     return { axes, cells };
   }
 
+  // ---------- custom point system (from the "Adjust" page, passed as ?p=...) ----------
+  const DEFAULT_PV = { award: { i1: 60, i2: 30, i3: 15, t1: 12, t2: 6, t3: 3, a1: 12, a2: 6, a3: 3 }, playoff: { p1: 40, p2: 20, p3: 10, p4: 5 }, allianceTop: 20, qualW: 1 };
+  const PV_KEYS = [["i1", "award", "i1"], ["i2", "award", "i2"], ["i3", "award", "i3"], ["t1", "award", "t1"], ["t2", "award", "t2"], ["t3", "award", "t3"], ["a1", "award", "a1"], ["a2", "award", "a2"], ["a3", "award", "a3"], ["p1", "playoff", "p1"], ["p2", "playoff", "p2"], ["p3", "playoff", "p3"], ["p4", "playoff", "p4"], ["at", "allianceTop"], ["qw", "qualW"]];
+  function parsePV(str) {
+    const pv = JSON.parse(JSON.stringify(DEFAULT_PV)), idx = {}, seen = {}; let found = false;
+    for (const t of PV_KEYS) idx[t[0]] = t;
+    for (const part of String(str).split("_")) {
+      const i = part.indexOf("-"); if (i < 0) continue;
+      const t = idx[part.slice(0, i)], v = Number(part.slice(i + 1)); if (!t || !Number.isFinite(v)) continue;
+      found = true; seen[t[0]] = true; if (t[2]) pv[t[1]][t[2]] = v; else pv[t[1]] = v;
+    }
+    for (const n of [1, 2, 3]) if (!seen["t" + n]) pv.award["t" + n] = pv.award["a" + n]; // Think follows the general award value unless set
+    return found ? pv : null;
+  }
+  // Same scoring as the Adjust page. rows: [ei,tc,awPts,plPts,alPts,qPts,qr,advRank,adv,awardIndex,place]
+  function newTotal(r, pv) {
+    const ai = r[9], place = r[10]; let aw = r[2];
+    if (ai >= 0 && place >= 1 && place <= 3) {
+      const def = ai === 0 ? [60, 30, 15][place - 1] : [12, 6, 3][place - 1];
+      aw = r[2] * (pv.award[(ai === 0 ? "i" : ai === 1 ? "t" : "a") + place] / def);
+    }
+    const pl = ({ 40: pv.playoff.p1, 20: pv.playoff.p2, 10: pv.playoff.p3, 5: pv.playoff.p4, 0: 0 })[r[3]] ?? 0;
+    const al = r[4] > 0 ? Math.max(0, pv.allianceTop - ((21 - r[4]) - 1)) : 0;
+    return aw + pl + al + r[5] * pv.qualW;
+  }
+  // With a custom point system, each event keeps its number of advancing teams but re-ranks them by the new totals.
+  function customAdv(rows) {
+    const pv = state.pv; if (!pv) return null;
+    const byEv = new Map();
+    for (const r of rows) { if (!byEv.has(r[0])) byEv.set(r[0], []); byEv.get(r[0]).push(r); }
+    const set = new Set();
+    for (const teams of byEv.values()) {
+      const n = teams.filter((r) => r[7] !== 9999 && r[7] <= state.threshold).length;
+      const order = teams.map((r) => ({ r, s: newTotal(r, pv) })).sort((a, b) => b.s - a.s);
+      for (let i = 0; i < n; i++) set.add(order[i].r);
+    }
+    return (r) => set.has(r);
+  }
+
   // ---------- state ----------
-  const state = { range: "21-30", minTeams: 21, maxTeams: 30, threshold: 6, sel: ["playoff", "award"], layer: "all", box: "qual" };
+  const state = { range: "21-30", minTeams: 21, maxTeams: 30, threshold: 6, sel: ["playoff", "award"], layer: "all", box: "qual", pv: null };
   let fromOld4d = false;
   try {
     const q = new URLSearchParams(location.search);
@@ -211,6 +278,7 @@
     const f = (q.get("f") || "").split(".").filter((id) => fac(id)); if (f.length >= 2 && f.length <= 4) state.sel = [...new Set(f)];
     const b = q.get("b"); if (b && fac(b)) state.box = b;
     fromOld4d = q.get("from") === "4d";
+    const pts = q.get("p"); if (pts) state.pv = parsePV(pts);
   } catch (e) {}
 
   function filteredRows() {
@@ -313,7 +381,7 @@
     $("layerBox").style.display = "none";
     if (sel.length < 2) { $("caption").textContent = ""; showMsg("Select 2 factors for 3D bars, 3 for a cube, or all 4 for the 4D view."); return; }
 
-    const A = aggregate(rows, state.threshold, sel, lowData);
+    const A = aggregate(rows, state.threshold, sel, lowData, customAdv(rows));
     if (A.axes.some((ax) => !ax.groups.length)) { $("caption").textContent = ""; showMsg("Not enough data for this selection."); return; }
     showMsg("");
 
@@ -385,6 +453,8 @@
       const ty = spriteLabel("Advance chance", 0.45, { bold: true, color: "#111", ax: 1, ay: 0 }); ty.position.set(x0 - 0.15, H + 0.35, z1 + 0.15); world.add(ty);
     }
 
+    if (state.pv) $("caption").textContent += " (your point system)";
+    $("pvNote").style.display = state.pv ? "inline" : "none";
     // camera: only re-frame when the shape of the chart changes
     let maxWY = 0; world.children.forEach((o) => { if (o.isSprite && o.center.x === 1) maxWY = Math.max(maxWY, o.scale.x); }); // labels left of the chart
     const R = Math.max(nx + maxWZ + maxWY * 0.5, nz + maxWX, H * 1.4);
@@ -432,7 +502,7 @@
     $("lowData").style.display = lowData && rows.length ? "block" : "none";
     $("layerBox").style.display = "none";
 
-    const A = aggregate(rows, state.threshold, ALL, lowData);
+    const A = aggregate(rows, state.threshold, ALL, lowData, customAdv(rows));
     if (A.axes.some((ax) => !ax.groups.length)) { $("caption").textContent = ""; showMsg("Not enough data for this selection."); return; }
     showMsg("");
 
@@ -491,6 +561,8 @@
     ls.value = state.layer; $("layerLabel").textContent = fac(Y.id).label + " layer"; $("layerBox").style.display = "flex";
     applyLayer();
 
+    if (state.pv) $("caption").textContent += " (your point system)";
+    $("pvNote").style.display = state.pv ? "inline" : "none";
     // camera: only re-frame when the shape of the chart changes
     let maxWY = 0; world.children.forEach((o) => { if (o.isSprite && o.center.x === 1) maxWY = Math.max(maxWY, o.scale.x); }); // labels left of the chart
     const R = Math.max(x1 - x0 + maxWZ + maxWY * 0.6, z1 - z0 + maxWX, (top + 2) * 1.4);
@@ -567,6 +639,27 @@
   intIn($("threshold"), 1, "threshold", "change_threshold", "threshold"); intIn($("minTeams"), 0, "minTeams", "change_custom_min_teams", "min_teams"); intIn($("maxTeams"), 0, "maxTeams", "change_custom_max_teams", "max_teams");
   $("layer").addEventListener("change", (e) => { state.layer = e.target.value; hideTip(); applyLayer(); track("select_layer", { layer: e.target.selectedOptions[0] ? e.target.selectedOptions[0].textContent : state.layer }); });
   document.querySelectorAll(".nav a").forEach((a) => a.addEventListener("click", () => track(a.dataset.ev, { source: "3d_header_link" })));
+  // When embedded, the toolbar only holds the layer / boxes pickers; hide it when neither applies.
+  function syncEmbed() {
+    if (!EMBED) return;
+    const any = $("boxCtl").style.display !== "none" || $("layerBox").style.display !== "none";
+    document.querySelector(".toolbar").style.display = any ? "" : "none"; renderBoxPills(); resize();
+  }
+  // When embedded, the host page sends its filters here instead of reloading the frame.
+  let lastMsg = "";
+  window.addEventListener("message", (e) => {
+    const d = e.data; if (!EMBED || !d || d.type !== "adv3d") return;
+    const sig = JSON.stringify(d); if (sig === lastMsg) return; lastMsg = sig;
+    if (Array.isArray(d.f)) { const f = d.f.filter((id) => fac(id)); if (f.length >= 2) state.sel = [...new Set(f)]; }
+    if (RANGES[d.range] || d.range === "custom") state.range = d.range;
+    if (Number.isFinite(d.minTeams)) state.minTeams = d.minTeams;
+    if (Number.isFinite(d.maxTeams)) state.maxTeams = d.maxTeams;
+    if (Number.isFinite(d.threshold)) state.threshold = Math.max(1, d.threshold);
+    state.pv = d.p ? parsePV(d.p) : null;
+    if (state.sel.length < 3) state.layer = "all";
+    rebuild(); syncEmbed();
+  });
+  $("pvOff").addEventListener("click", () => { state.pv = null; $("pvNote").style.display = "none"; rebuild(); track("use_official_points"); });
   $("resetView").addEventListener("click", () => { resetView(); track("reset_view"); });
 
   function resize() {
@@ -577,8 +670,8 @@
 
   renderPills(); renderBoxPills(); resize();
   if (!window.ADV_DATA) { showMsg("Could not load event data (advData.js)."); return; }
-  rebuild();
-  track("view_3d_page", { factor_count: state.sel.length, factors: state.sel.join("."), range_value: state.range, threshold: state.threshold, from_4d_link: fromOld4d });
+  rebuild(); syncEmbed();
+  track("view_3d_page", { factor_count: state.sel.length, factors: state.sel.join("."), range_value: state.range, threshold: state.threshold, from_4d_link: fromOld4d, custom_points: !!state.pv });
   (function loop() { controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); })();
 })();
 </script>
