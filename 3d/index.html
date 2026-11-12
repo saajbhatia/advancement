@@ -300,6 +300,8 @@
   const controls = new THREE.OrbitControls(camera, canvas);
   controls.enableDamping = true; controls.dampingFactor = 0.12;
   controls.maxPolarAngle = Math.PI / 2 - 0.02;
+  // Right-drag turns the chart too (the library default is pan). Shift + drag still pans.
+  controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
   scene.add(new THREE.AmbientLight(0xffffff, 0.72));
   const sun = new THREE.DirectionalLight(0xffffff, 0.55); sun.position.set(6, 12, 8); scene.add(sun);
   const fill = new THREE.DirectionalLight(0xffffff, 0.18); fill.position.set(-8, 4, -6); scene.add(fill);
