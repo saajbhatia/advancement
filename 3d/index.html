@@ -468,7 +468,7 @@
       const parts = key.split("|||");
       const i = idx[xi].get(parts[xi]), k = idx[yi].get(parts[yi]), j = idx[zi].get(parts[zi]), q = idx[qi].get(parts[qi]);
       const pct = (c.hits / c.total) * 100, low = c.total <= 4, sc = low ? 0.62 : 0.9;
-      const m = new THREE.Mesh(BOX, new THREE.MeshLambertMaterial({ map: boxFace(pct, shortLabel(Q.id, Q.groups[q])) }));
+      const m = new THREE.Mesh(BOX, new THREE.MeshLambertMaterial({ map: boxFace(pct, shortLabel(Q.id, Q.groups[q])), transparent: low, opacity: low ? 0.45 : 1 }));
       m.scale.set(sc, sc, sc); m.position.set(px(i) + sx(q), ly(k) + sc / 2, pz(j) + sz(q));
       m.userData = { k, pct, hits: c.hits, total: c.total, parts: [[fac(Y.id).full, Y.groups[k].label], [fac(X.id).full, X.groups[i].label], [fac(Z.id).full, Z.groups[j].label], [fac(Q.id).full, Q.groups[q].label]] };
       world.add(m); cellMeshes.push(m);
