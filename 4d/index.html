@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="4D view of FTC advancement odds: awards, playoffs, alliance seed and qual rank in one cube." />
 <title>Advancement odds for FTC – 4D</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4T577GC8SB"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-4T577GC8SB');</script>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -104,6 +106,8 @@
 (function () {
   "use strict";
   const $ = (id) => document.getElementById(id);
+  // Google Analytics events, same shape as the main page.
+  function track(name, params) { if (typeof window.gtag === "function") window.gtag("event", name, Object.assign({ event_category: "engagement", page_path: window.location.pathname, app_view: "4d" }, params || {})); }
 
   // ---------- data logic (mirrors the main page) ----------
   const AWARD_LABELS = { 60: "Inspire 1st (60)", 30: "Inspire 2nd (30)", 15: "Inspire 3rd (15)", 12: "1st place award (12)", 6: "2nd place award (6)", 3: "3rd place award (3)", 0: "No awards (0)" };
@@ -397,13 +401,13 @@
   canvas.addEventListener("pointerleave", hideTip);
 
   // ---------- controls ----------
-  const intIn = (el, min, key) => el.addEventListener("input", () => { const v = parseInt(el.value, 10); state[key] = Number.isFinite(v) ? Math.max(min, v) : min; rebuild(); });
+  const intIn = (el, min, key, ev, param) => el.addEventListener("input", () => { const v = parseInt(el.value, 10); state[key] = Number.isFinite(v) ? Math.max(min, v) : min; rebuild(); track(ev, { [param]: state[key] }); });
   $("range").value = state.range; $("threshold").value = state.threshold; $("minTeams").value = state.minTeams; $("maxTeams").value = state.maxTeams;
   $("customBox").style.display = state.range === "custom" ? "flex" : "none";
-  $("range").addEventListener("change", (e) => { state.range = e.target.value; $("customBox").style.display = state.range === "custom" ? "flex" : "none"; rebuild(); });
-  intIn($("threshold"), 1, "threshold"); intIn($("minTeams"), 0, "minTeams"); intIn($("maxTeams"), 0, "maxTeams");
-  $("layer").addEventListener("change", (e) => { state.layer = e.target.value; hideTip(); applyLayer(); });
-  $("resetView").addEventListener("click", resetView);
+  $("range").addEventListener("change", (e) => { state.range = e.target.value; $("customBox").style.display = state.range === "custom" ? "flex" : "none"; rebuild(); track("select_team_range", { range_value: state.range }); });
+  intIn($("threshold"), 1, "threshold", "change_threshold", "threshold"); intIn($("minTeams"), 0, "minTeams", "change_custom_min_teams", "min_teams"); intIn($("maxTeams"), 0, "maxTeams", "change_custom_max_teams", "max_teams");
+  $("layer").addEventListener("change", (e) => { state.layer = e.target.value; hideTip(); applyLayer(); track("select_layer", { layer: e.target.selectedOptions[0] ? e.target.selectedOptions[0].textContent : state.layer }); });
+  $("resetView").addEventListener("click", () => { resetView(); track("reset_view"); });
 
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
