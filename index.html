@@ -34,6 +34,7 @@
 
   <!-- nav / actions -->
   <div class="actionbar">
+    <button onClick="{{ on3D }}" class="actionbtn" style="background:#6d28d9;color:#fff;border:1px solid #6d28d9;font-weight:700;box-shadow:0 0 0 3px rgba(109,40,217,0.25);"><span style="display:inline-block;margin-right:8px;padding:1px 6px;border-radius:4px;background:#fff;color:#6d28d9;font-size:11px;font-weight:700;letter-spacing:0.04em;vertical-align:1px;">NEW</span>3D / 4D view</button>
     <button onClick="{{ onCompare }}" class="actionbtn" style="background:#059669;color:#fff;border:none;">Compare with previous season</button>
     <button onClick="{{ onAdjust }}" class="actionbtn" style="background:{{ adjustBg }};color:{{ adjustColor }};border:1px solid {{ adjustBorder }};">Adjust advancement system</button>
   </div>
@@ -92,24 +93,8 @@
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px;align-items:start;">
       <sc-for list="{{ factorCards }}" as="card" hint-placeholder-count="4">
-        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-          <table style="table-layout:fixed;">
-            <caption style="font-weight:600;margin-bottom:6px;">{{ card.title }}</caption>
-            <tbody>
-            <tr>
-              <th style="width:40%;border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;">Value</th>
-              <th style="width:34%;border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;">Advance chance</th>
-              <th style="width:26%;border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;">Teams</th>
-            </tr>
-            <sc-for list="{{ card.rows }}" as="row" hint-placeholder-count="6">
-              <tr>
-                <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;text-align:left;">{{ row.label }}</th>
-                <td style="border:1px solid #ddd;padding:4px 8px;font-size:13px;text-align:center;background-color:{{ row.bg }};background-image:{{ row.stripe }};color:{{ row.fg }};">{{ row.pctText }}</td>
-                <td style="border:1px solid #ddd;padding:4px 8px;font-size:13px;text-align:center;">{{ row.count }}</td>
-              </tr>
-            </sc-for>
-            </tbody>
-          </table>
+        <div style="min-width:0;overflow-x:auto;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          {{ card.tableEl }}
         </div>
       </sc-for>
     </div>
@@ -118,24 +103,7 @@
       <sc-if value="{{ gridReady }}" hint-placeholder-val="{{ true }}">
         <div style="font-weight:600;margin-bottom:6px;text-align:center;">{{ gridCaption }}</div>
         <div style="max-width:100%;overflow-x:auto;display:flex;justify-content:center;">
-          <table style="width:max-content;white-space:nowrap;">
-            <tbody>
-            <tr>
-              <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;"></th>
-              <sc-for list="{{ gridCols }}" as="c" hint-placeholder-count="6">
-                <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;">{{ c }}</th>
-              </sc-for>
-            </tr>
-            <sc-for list="{{ gridRows }}" as="gr" hint-placeholder-count="5">
-              <tr>
-                <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;text-align:left;">{{ gr.label }}</th>
-                <sc-for list="{{ gr.cells }}" as="cell" hint-placeholder-count="6">
-                  <td style="border:1px solid #ddd;padding:4px 8px;font-size:13px;text-align:center;background-color:{{ cell.bg }};background-image:{{ cell.stripe }};color:{{ cell.fg }};">{{ cell.pctText }}<br><small>{{ cell.count }}</small></td>
-                </sc-for>
-              </tr>
-            </sc-for>
-            </tbody>
-          </table>
+          {{ gridTableEl }}
         </div>
       </sc-if>
       <sc-if value="{{ gridNeedsTwo }}" hint-placeholder-val="{{ false }}">
@@ -151,7 +119,7 @@
     <!-- editor -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:start;margin-bottom:12px;">
       <sc-for list="{{ editorCards }}" as="ec" hint-placeholder-count="4">
-        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+        <div style="min-width:0;overflow-x:auto;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
           <div onClick="{{ ec.onToggle }}" style="display:flex;align-items:center;justify-content:center;gap:6px;font-weight:600;text-align:center;cursor:{{ ec.cursor }};user-select:none;">
             <span>{{ ec.title }}</span><span class="info" tabindex="0">i<span class="infotip">{{ ec.help }}</span></span><span style="font-size:12px;color:#888;">{{ ec.chevron }}</span>
           </div>
@@ -174,25 +142,7 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:start;">
       <sc-for list="{{ compCards }}" as="card" hint-placeholder-count="4">
         <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-          <table>
-            <caption style="font-weight:600;margin-bottom:6px;">{{ card.title }}</caption>
-            <tbody>
-            <tr>
-              <th style="border:1px solid #ddd;padding:4px 6px;font-size:12px;background:#f4f4f4;">Value</th>
-              <th style="border:1px solid #ddd;padding:4px 6px;font-size:12px;background:#f4f4f4;">Official</th>
-              <th style="border:1px solid #ddd;padding:4px 6px;font-size:12px;background:#f4f4f4;">Yours</th>
-              <th style="border:1px solid #ddd;padding:4px 6px;font-size:12px;background:#f4f4f4;">Δ</th>
-            </tr>
-            <sc-for list="{{ card.rows }}" as="row" hint-placeholder-count="6">
-              <tr>
-                <th style="border:1px solid #ddd;padding:4px 6px;font-size:12px;background:#f4f4f4;text-align:left;">{{ row.label }}</th>
-                <td style="border:1px solid #ddd;padding:4px 6px;font-size:12.5px;text-align:center;background-color:{{ row.offBg }};color:{{ row.offFg }};">{{ row.offText }}</td>
-                <td style="border:1px solid #ddd;padding:4px 6px;font-size:12.5px;text-align:center;background-color:{{ row.newBg }};color:{{ row.newFg }};">{{ row.newText }}</td>
-                <td style="border:1px solid #ddd;padding:4px 6px;font-size:12px;font-weight:bold;text-align:center;color:{{ row.dColor }};">{{ row.dText }}</td>
-              </tr>
-            </sc-for>
-            </tbody>
-          </table>
+          {{ card.tableEl }}
         </div>
       </sc-for>
     </div>
@@ -211,24 +161,7 @@
       <sc-if value="{{ simGridReady }}" hint-placeholder-val="{{ true }}">
         <div style="font-weight:600;margin-bottom:6px;text-align:center;">{{ simGridCaption }}</div>
         <div style="max-width:100%;overflow-x:auto;display:flex;justify-content:center;">
-          <table style="width:max-content;white-space:nowrap;">
-            <tbody>
-            <tr>
-              <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;"></th>
-              <sc-for list="{{ simGridCols }}" as="c" hint-placeholder-count="6">
-                <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;">{{ c }}</th>
-              </sc-for>
-            </tr>
-            <sc-for list="{{ simGridRows }}" as="gr" hint-placeholder-count="5">
-              <tr>
-                <th style="border:1px solid #ddd;padding:4px 8px;font-size:13px;background:#f4f4f4;text-align:left;">{{ gr.label }}</th>
-                <sc-for list="{{ gr.cells }}" as="cell" hint-placeholder-count="6">
-                  <td style="border:1px solid #ddd;padding:4px 8px;font-size:13px;text-align:center;background-color:{{ cell.bg }};background-image:{{ cell.stripe }};color:{{ cell.fg }};">{{ cell.pctText }}<br><small>{{ cell.count }}</small></td>
-                </sc-for>
-              </tr>
-            </sc-for>
-            </tbody>
-          </table>
+          {{ simGridTableEl }}
         </div>
       </sc-if>
       <sc-if value="{{ simGridNeedsTwo }}" hint-placeholder-val="{{ false }}">
@@ -340,6 +273,59 @@ class Component extends DCLogic {
   hslToRgb(h, s, l) { s /= 100; l /= 100; const k = (n) => (n + h / 30) % 12; const a = s * Math.min(l, 1 - l); const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))]; }
   colorForPct(pct) { const capped = Math.max(0, Math.min(100, pct)); const hue = capped * 1.2; const [R, G, B] = this.hslToRgb(hue, 85, 55); const bright = (R * 299 + G * 587 + B * 114) / 1000; return { bg: `hsl(${hue}, 85%, 55%)`, fg: bright > 140 ? "#000" : "#fff" }; }
   stripe(total) { return total <= 4 ? "repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(0,0,0,0.08) 5px,rgba(0,0,0,0.08) 10px)" : "none"; }
+  thStyle(extra = {}) { return { border: "1px solid #ddd", padding: "4px 8px", fontSize: 13, lineHeight: 1.2, background: "#f4f4f4", whiteSpace: "normal", overflowWrap: "anywhere", wordBreak: "break-word", ...extra }; }
+  tdStyle(extra = {}) { return { border: "1px solid #ddd", padding: "4px 8px", fontSize: 13, lineHeight: 1.2, textAlign: "center", whiteSpace: "normal", overflowWrap: "anywhere", wordBreak: "break-word", ...extra }; }
+  factorTable(title, rows) {
+    const e = React.createElement;
+    return e("table", { style: { tableLayout: "fixed", borderCollapse: "collapse", width: "100%", maxWidth: "100%" } },
+      e("caption", { style: { fontWeight: 600, marginBottom: 6 } }, title),
+      e("tbody", null,
+        e("tr", { key: "head" },
+          e("th", { style: this.thStyle({ width: "40%" }) }, "Value"),
+          e("th", { style: this.thStyle({ width: "34%" }) }, "Advance chance"),
+          e("th", { style: this.thStyle({ width: "26%" }) }, "Teams")
+        ),
+        ...rows.map((row, i) => e("tr", { key: row.label || i },
+          e("th", { style: this.thStyle({ textAlign: "left" }) }, row.label),
+          e("td", { style: this.tdStyle({ backgroundColor: row.bg, backgroundImage: row.stripe, color: row.fg }) }, row.pctText),
+          e("td", { style: this.tdStyle() }, row.count)
+        ))
+      )
+    );
+  }
+  comparisonTable(title, rows) {
+    const e = React.createElement;
+    const compactTh = (extra = {}) => this.thStyle({ padding: "4px 6px", fontSize: 12, whiteSpace: "nowrap", overflowWrap: "normal", wordBreak: "normal", ...extra });
+    const compactTd = (extra = {}) => this.tdStyle({ padding: "4px 6px", whiteSpace: "nowrap", overflowWrap: "normal", wordBreak: "normal", ...extra });
+    const th = (text) => e("th", { style: compactTh() }, text);
+    return e("table", { style: { borderCollapse: "collapse", width: "100%" } },
+      e("caption", { style: { fontWeight: 600, marginBottom: 6 } }, title),
+      e("tbody", null,
+        e("tr", { key: "head" }, th("Value"), th("Official"), th("Yours"), th("Δ")),
+        ...rows.map((row, i) => e("tr", { key: row.label || i },
+          e("th", { style: compactTh({ textAlign: "left" }) }, row.label),
+          e("td", { style: compactTd({ fontSize: 12.5, backgroundColor: row.offBg, color: row.offFg }) }, row.offText),
+          e("td", { style: compactTd({ fontSize: 12.5, backgroundColor: row.newBg, color: row.newFg }) }, row.newText),
+          e("td", { style: compactTd({ fontSize: 12, fontWeight: "bold", color: row.dColor }) }, row.dText)
+        ))
+      )
+    );
+  }
+  gridTable(cols, rows) {
+    const e = React.createElement;
+    return e("table", { style: { width: "max-content", whiteSpace: "nowrap", borderCollapse: "collapse" } },
+      e("tbody", null,
+        e("tr", { key: "head" },
+          e("th", { style: this.thStyle() }),
+          ...cols.map((c, i) => e("th", { key: c || i, style: this.thStyle() }, c))
+        ),
+        ...rows.map((gr, i) => e("tr", { key: gr.label || i },
+          e("th", { style: this.thStyle({ textAlign: "left" }) }, gr.label),
+          ...gr.cells.map((cell, j) => e("td", { key: j, style: this.tdStyle({ backgroundColor: cell.bg, backgroundImage: cell.stripe, color: cell.fg }) }, cell.pctText, e("br"), e("small", null, cell.count)))
+        ))
+      )
+    );
+  }
 
   // ---- factor normalize ----
   getVal(fid, r) { return fid === "award" ? r[2] : fid === "playoff" ? r[3] : fid === "alliance" ? r[4] : r[6]; }
@@ -502,6 +488,7 @@ class Component extends DCLogic {
   isAdjustRoute(url = window.location) { return /\/adjust(?:\/|\/index\.html)?$/.test(url.pathname); }
   onCompare = () => { this.trackEvent("nav_to_compare", { source: this.isAdjustRoute() ? "adjust_header_button" : "main_header_button" }); window.open(this.routeURL("compare/").toString(), "_self"); };
   onAdjust = () => { this.trackEvent("adjust_advancement_system", { source: this.isAdjustRoute() ? "adjust_header_button" : "main_header_button", target_view: "point_system" }); window.open(this.shareURL("adjust/", { tab: "sim" }).toString(), "_self"); };
+  on3D = () => { this.trackEvent("nav_to_3d", { source: this.isAdjustRoute() ? "adjust_header_button" : "main_header_button" }); window.open(this.routeURL("3d/index.html").toString(), "_self"); };
   trackEvent(eventName, params = {}) { if (typeof window.gtag === "function") window.gtag("event", eventName, { event_category: "engagement", page_path: window.location.pathname, app_view: this.state.tab, ...params }); }
   // ---- shareable-link state (advancement / point system) ----
   // Compact key -> [category, subkey?] map for point values in the shareable link.
@@ -534,7 +521,7 @@ class Component extends DCLogic {
     const thresholdH = this.numH("threshold", s.threshold, (n) => this.setThresholdValue(Math.max(1, Math.floor(n))), () => this.setThresholdValue(1));
     const minH = this.numH("minTeams", s.minTeams, (n) => this.setMinValue(Math.max(0, Math.floor(n))), () => this.setMinValue(0));
     const maxH = this.numH("maxTeams", s.maxTeams, (n) => this.setMaxValue(Math.max(0, Math.floor(n))), () => this.setMaxValue(0));
-    const common = { loading: !s.loaded, ready: s.loaded, isOdds: s.loaded && s.tab === "odds", isSim: s.loaded && s.tab === "sim", tabs: [tabPill("odds", "Odds"), tabPill("sim", "Point system")], range: s.range, thresholdH, isCustom: s.range === "custom", minH, maxH, onRange: this.setRange, onCompare: this.onCompare, onReset: this.reset, modalOpen: s.modalOpen, onLearnMore: this.openModal, onCloseModal: this.closeModal, stop: (e) => e.stopPropagation(), onAdjust: this.onAdjust, adjustBg: s.tab === "sim" ? "#1d4ed8" : "#2563eb", adjustColor: "#fff", adjustBorder: s.tab === "sim" ? "#1d4ed8" : "#2563eb" };
+    const common = { loading: !s.loaded, ready: s.loaded, isOdds: s.loaded && s.tab === "odds", isSim: s.loaded && s.tab === "sim", tabs: [tabPill("odds", "Odds"), tabPill("sim", "Point system")], range: s.range, thresholdH, isCustom: s.range === "custom", minH, maxH, onRange: this.setRange, onCompare: this.onCompare, onReset: this.reset, modalOpen: s.modalOpen, onLearnMore: this.openModal, onCloseModal: this.closeModal, stop: (e) => e.stopPropagation(), onAdjust: this.onAdjust, on3D: this.on3D, adjustBg: s.tab === "sim" ? "#1d4ed8" : "#2563eb", adjustColor: "#fff", adjustBorder: s.tab === "sim" ? "#1d4ed8" : "#2563eb" };
 
     if (!s.loaded) return { ...common, gridToggles: [], factorCards: [], gridCols: [], gridRows: [], editorCards: [], compCards: [] };
 
@@ -550,27 +537,28 @@ class Component extends DCLogic {
     const onToggleFactors = () => { const expanded = !this.state.factorsOpen; this.trackEvent("toggle_factor_selector", { expanded }); this.setState({ factorsOpen: expanded }); };
 
     // ---- ODDS ----
-    let factorCards = [], gridCols = [], gridRows = [], gridCaption = "", gridReady = false, gridNeedsTwo = false, statusPre = "";
+    let factorCards = [], gridCols = [], gridRows = [], gridTableEl = null, gridCaption = "", gridReady = false, gridNeedsTwo = false, statusPre = "";
     if (s.tab === "odds") {
       statusPre = `Filtered to ${rows.length} teams across ${evCount} events |`;
-      factorCards = this.FACTORS.map((f) => ({
-        title: f.full,
-        rows: this.aggFactor(rows, f.id, s.threshold, lowData).map((g) => {
+      factorCards = this.FACTORS.map((f) => {
+        const tableRows = this.aggFactor(rows, f.id, s.threshold, lowData).map((g) => {
           const pct = g.total ? (g.hits / g.total) * 100 : 0; const c = this.colorForPct(pct);
           return { label: g.label, pctText: pct.toFixed(1) + "%", count: g.hits + "/" + g.total, bg: c.bg, fg: c.fg, stripe: this.stripe(g.total) };
-        }),
-      }));
+        });
+        return { tableEl: this.factorTable(f.full, tableRows) };
+      });
       if (s.grid.length === 2) {
         const G = this.buildGrid(rows, s.threshold, s.grid, lowData);
         if (G.ok) {
           gridReady = true; gridCaption = G.caption; gridCols = G.xl.map((x) => x.label);
           gridRows = G.yl.map((y) => ({ label: y.label, cells: G.xl.map((x) => { const cell = G.nc.get(x.key + "|||" + y.key); if (!cell) return { pctText: "–", count: "", bg: "#f9f9f9", fg: "#888", stripe: "none" }; const pct = (cell.hits / cell.total) * 100; const c = this.colorForPct(pct); return { pctText: pct.toFixed(1) + "%", count: cell.hits + "/" + cell.total, bg: c.bg, fg: c.fg, stripe: this.stripe(cell.total) }; }) }));
+          gridTableEl = this.gridTable(gridCols, gridRows);
         }
       } else gridNeedsTwo = true;
     }
 
     // ---- SIM ----
-    let editorCards = [], compCards = [], simGridCols = [], simGridRows = [], simGridCaption = "", simGridReady = false, simGridNeedsTwo = false;
+    let editorCards = [], compCards = [], simGridCols = [], simGridRows = [], simGridTableEl = null, simGridCaption = "", simGridReady = false, simGridNeedsTwo = false;
     if (s.tab === "sim") {
       const pv = s.pv, d = this.DEFAULT_PV;
       const inp = (cat, key, label, val, def, step) => { const h = this.numH("pv:" + cat + ":" + key, val, (n) => this.setPV(cat, key, n), () => this.setPV(cat, key, 0)); return { label, value: h.value, onChange: h.onChange, onBlur: h.onBlur, step: step || 1, border: val !== def ? "#2563eb" : "#ccc", bg: val !== def ? "#eff5ff" : "#fff" }; };
@@ -586,14 +574,14 @@ class Component extends DCLogic {
         return { ...c, expanded, chevron: s.isMobile ? (open ? "▴" : "▾") : "", cursor: s.isMobile ? "pointer" : "default", onToggle: () => this.toggleEditorCard(c.id) };
       });
       const sim = this.computeSim(rows, s.threshold, pv, lowData);
-      compCards = sim.cards.map((card) => ({
-        title: card.title,
-        rows: this.collapsePair(card.raw, card.id).map((g) => {
+      compCards = sim.cards.map((card) => {
+        const tableRows = this.collapsePair(card.raw, card.id).map((g) => {
           const off = g.total ? (g.off / g.total) * 100 : 0, nw = g.total ? (g.nw / g.total) * 100 : 0, dlt = nw - off;
           const co = this.colorForPct(off), cn = this.colorForPct(nw);
           return { label: g.label, offText: off.toFixed(0) + "%", newText: nw.toFixed(0) + "%", offBg: co.bg, offFg: co.fg, newBg: cn.bg, newFg: cn.fg, dText: (dlt > 0 ? "+" : "") + dlt.toFixed(0), dColor: dlt > 0.5 ? "#15803d" : dlt < -0.5 ? "#b91c1c" : "#999" };
-        }),
-      }));
+        });
+        return { tableEl: this.comparisonTable(card.title, tableRows) };
+      });
       // 2-way table under the custom point system
       if (s.grid.length === 2) {
         const advFn0 = this.newAdvSet(rows, s.threshold, pv);
@@ -601,11 +589,12 @@ class Component extends DCLogic {
         if (G.ok) {
           simGridReady = true; simGridCaption = G.caption; simGridCols = G.xl.map((x) => x.label);
           simGridRows = G.yl.map((y) => ({ label: y.label, cells: G.xl.map((x) => { const cell = G.nc.get(x.key + "|||" + y.key); if (!cell) return { pctText: "–", count: "", bg: "#f9f9f9", fg: "#888", stripe: "none" }; const pct = (cell.hits / cell.total) * 100; const c = this.colorForPct(pct); return { pctText: pct.toFixed(1) + "%", count: cell.hits + "/" + cell.total, bg: c.bg, fg: c.fg, stripe: this.stripe(cell.total) }; }) }));
+          simGridTableEl = this.gridTable(simGridCols, simGridRows);
         }
       } else simGridNeedsTwo = true;
     }
 
-    return { ...common, gridToggles, gridSummary, factorsCollapsed, factorsExpanded, onToggleFactors, lowData, statusPre, factorCards, gridCols, gridRows, gridCaption, gridReady, gridNeedsTwo, editorCards, compCards, simGridCols, simGridRows, simGridCaption, simGridReady, simGridNeedsTwo };
+    return { ...common, gridToggles, gridSummary, factorsCollapsed, factorsExpanded, onToggleFactors, lowData, statusPre, factorCards, gridCols, gridRows, gridTableEl, gridCaption, gridReady, gridNeedsTwo, editorCards, compCards, simGridCols, simGridRows, simGridTableEl, simGridCaption, simGridReady, simGridNeedsTwo };
   }
 }
 </script>
